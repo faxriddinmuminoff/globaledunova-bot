@@ -265,7 +265,6 @@ export async function handleDocumentUpload(ctx: AppContext): Promise<void> {
     const documentTypeLabel = texts.documentTypes[documentType];
     await ctx.reply(
       texts.documentUploadSuccess(documentTypeLabel, file.originalFileName),
-      { parse_mode: 'Markdown' },
     );
   } catch (error) {
     if (isDuplicateDocumentError(error)) {
