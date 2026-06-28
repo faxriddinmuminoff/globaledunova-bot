@@ -17,6 +17,7 @@ import {
   documentExists,
   findDocumentsByTelegramId,
 } from '../../database/repositories/document.repository';
+import { isDuplicateDocumentError } from '../../database/postgres-errors';
 import { getUniversityById } from '../../universities/catalog';
 import {
   ALLOWED_MIME_TYPES,
@@ -267,6 +268,12 @@ export async function handleDocumentUpload(ctx: AppContext): Promise<void> {
       { parse_mode: 'Markdown' },
     );
   } catch (error) {
+    if (isDuplicateDocumentError(error)) {
+      clearDocumentFlow(ctx);
+      await ctx.reply(texts.documentUploadDuplicate);
+      return;
+    }
+
     logger.error({ error, telegramId, applicationId, documentType }, 'Document upload failed');
     clearDocumentFlow(ctx);
     await ctx.reply(texts.errorGeneric);

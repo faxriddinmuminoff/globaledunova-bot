@@ -19,6 +19,7 @@ import {
   createApplication,
   findApplicationsByTelegramId,
 } from '../../database/repositories/application.repository';
+import { isDuplicateApplicationError } from '../../database/postgres-errors';
 import { CountryCode, DegreeType, UNI_BACK_COUNTRIES } from '../../universities/types';
 import {
   getApplicationStatusLabel,
@@ -162,6 +163,11 @@ export async function handleUniversityApply(ctx: AppContext): Promise<void> {
       ),
     );
   } catch (error) {
+    if (isDuplicateApplicationError(error)) {
+      await ctx.answerCbQuery(texts.applicationDuplicate, { show_alert: true });
+      return;
+    }
+
     logger.error({ error, telegramId, parsed }, 'Failed to submit application');
     await ctx.answerCbQuery(texts.errorGeneric, { show_alert: true });
     throw error;

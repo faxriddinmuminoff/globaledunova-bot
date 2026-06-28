@@ -5,8 +5,11 @@ import { runMigrations } from './migrate';
 import { MemoryUserStore } from './stores/memory-user.store';
 import { PostgresUserStore } from './stores/postgres-user.store';
 import { MemoryApplicationStore } from './stores/memory-application.store';
+import { PostgresApplicationStore } from './stores/postgres-application.store';
 import { MemoryDocumentStore } from './stores/memory-document.store';
+import { PostgresDocumentStore } from './stores/postgres-document.store';
 import { MemoryNotificationStore } from './stores/memory-notification.store';
+import { PostgresNotificationStore } from './stores/postgres-notification.store';
 import { StorageBackend, UserStore } from './stores/types';
 import { ApplicationStore } from './stores/application-store.types';
 import { DocumentStore } from './stores/document-store.types';
@@ -14,9 +17,9 @@ import { NotificationStore } from './stores/notification-store.types';
 
 let backend: StorageBackend = 'memory';
 let userStore: UserStore = new MemoryUserStore();
-const applicationStore: ApplicationStore = new MemoryApplicationStore();
-const documentStore: DocumentStore = new MemoryDocumentStore();
-const notificationStore: NotificationStore = new MemoryNotificationStore();
+let applicationStore: ApplicationStore = new MemoryApplicationStore();
+let documentStore: DocumentStore = new MemoryDocumentStore();
+let notificationStore: NotificationStore = new MemoryNotificationStore();
 
 export function getStorageBackend(): StorageBackend {
   return backend;
@@ -71,9 +74,8 @@ export async function initializeStorage(): Promise<StorageBackend> {
       return backend;
     }
 
-    backend = 'postgres';
-    userStore = new PostgresUserStore();
-    logger.info('Using PostgreSQL storage');
+    usePostgresStorage();
+    logger.info('Using PostgreSQL storage (all entities)');
     return backend;
   }
 
@@ -84,15 +86,26 @@ export async function initializeStorage(): Promise<StorageBackend> {
 
   logger.warn(
     { databaseUrl: config.DATABASE_URL },
-    'PostgreSQL unavailable — using in-memory storage (development only). User data will not persist across restarts.',
+    'PostgreSQL unavailable — using in-memory storage (development only). Data will not persist across restarts.',
   );
   useMemoryStorage();
   return backend;
 }
 
+function usePostgresStorage(): void {
+  backend = 'postgres';
+  userStore = new PostgresUserStore();
+  applicationStore = new PostgresApplicationStore();
+  documentStore = new PostgresDocumentStore();
+  notificationStore = new PostgresNotificationStore();
+}
+
 function useMemoryStorage(): void {
   backend = 'memory';
   userStore = new MemoryUserStore();
+  applicationStore = new MemoryApplicationStore();
+  documentStore = new MemoryDocumentStore();
+  notificationStore = new MemoryNotificationStore();
 }
 
 export async function shutdownStorage(): Promise<void> {
