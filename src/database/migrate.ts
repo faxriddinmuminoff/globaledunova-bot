@@ -3,7 +3,7 @@ import path from 'path';
 import { getPool, closePool } from './index';
 import { logger } from '../logger';
 
-async function getAppliedMigrations(): Promise<Set<string>> {
+async function getAppliedMigrations(): Promise<{ filename: string; id: number }[]> {
   const pool = getPool();
 
   await pool.query(`
@@ -14,11 +14,11 @@ async function getAppliedMigrations(): Promise<Set<string>> {
     )
   `);
 
-  const result = await pool.query<{ filename: string }>(
-    'SELECT filename FROM schema_migrations ORDER BY id',
+  const result = await pool.query<{ filename: string; id: number }>(
+    'SELECT filename, id FROM schema_migrations ORDER BY id',
   );
 
-  return new Set(result.rows.map((row) => row.filename));
+  return result.rows;
 }
 
 async function runMigrations(): Promise<void> {
@@ -31,14 +31,15 @@ async function runMigrations(): Promise<void> {
 
   const files = fs
     .readdirSync(migrationsDir)
-    .filter((f) => f.endsWith('.sql'))
+    .filter((f) => f.endsWith('.sql') && !f.endsWith('.down.sql'))
     .sort();
 
   const applied = await getAppliedMigrations();
+  const appliedSet = new Set(applied.map((row) => row.filename));
   const pool = getPool();
 
   for (const file of files) {
-    if (applied.has(file)) {
+    if (appliedSet.has(file)) {
       logger.debug({ file }, 'Migration already applied');
       continue;
     }
@@ -64,10 +65,47 @@ async function runMigrations(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+async function rollbackLastMigration(): Promise<void> {
+  const migrationsDir = path.join(__dirname, 'migrations');
+  const applied = await getAppliedMigrations();
+  if (applied.length === 0) {
+    logger.info('No migrations to rollback');
+    return;
+  }
+
+  const last = applied[applied.length - 1];
+  const downFile = last.filename.replace('.sql', '.down.sql');
+  const downPath = path.join(migrationsDir, downFile);
+
+  if (!fs.existsSync(downPath)) {
+    throw new Error(`Rollback file not found: ${downFile}`);
+  }
+
+  const sql = fs.readFileSync(downPath, 'utf-8');
+  const pool = getPool();
+
+  await pool.query('BEGIN');
   try {
-    await runMigrations();
-    logger.info('All migrations completed');
+    await pool.query(sql);
+    await pool.query('DELETE FROM schema_migrations WHERE id = $1', [last.id]);
+    await pool.query('COMMIT');
+    logger.info({ file: last.filename }, 'Migration rolled back');
+  } catch (error) {
+    await pool.query('ROLLBACK');
+    throw error;
+  }
+}
+
+async function main(): Promise<void> {
+  const rollback = process.argv.includes('--rollback');
+
+  try {
+    if (rollback) {
+      await rollbackLastMigration();
+    } else {
+      await runMigrations();
+    }
+    logger.info(rollback ? 'Rollback completed' : 'All migrations completed');
   } catch (error) {
     logger.error({ error }, 'Migration process failed');
     process.exit(1);
@@ -80,4 +118,4 @@ if (require.main === module) {
   main();
 }
 
-export { runMigrations };
+export { runMigrations, rollbackLastMigration };

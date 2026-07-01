@@ -1,13 +1,7 @@
 import { getDocumentStore } from '../storage';
-import { Document, DocumentType } from '../../documents/types';
+import { Document, DocumentStatus, CreateDocumentData } from '../../documents/types';
 
-export async function createDocument(data: {
-  telegram_id: number;
-  application_id: number;
-  document_type: DocumentType;
-  telegram_file_id: string;
-  original_file_name: string;
-}): Promise<Document> {
+export async function createDocument(data: CreateDocumentData): Promise<Document> {
   return getDocumentStore().create(data);
 }
 
@@ -17,10 +11,31 @@ export async function findDocumentsByTelegramId(
   return getDocumentStore().findByTelegramId(telegramId);
 }
 
+export async function findDocumentsByApplicationId(
+  applicationId: number,
+): Promise<Document[]> {
+  return getDocumentStore().findByApplicationIdOnly(applicationId);
+}
+
+export async function findDocumentById(id: number): Promise<Document | null> {
+  return getDocumentStore().findByIdOnly(id);
+}
+
+export async function updateDocumentStatus(
+  id: number,
+  status: DocumentStatus,
+): Promise<Document | null> {
+  return getDocumentStore().updateStatusById(id, status);
+}
+
 export async function documentExists(
   applicationId: number,
   telegramId: number,
-  documentType: DocumentType,
+  documentType: CreateDocumentData['document_type'],
 ): Promise<boolean> {
   return getDocumentStore().exists(applicationId, telegramId, documentType);
+}
+
+export async function countDocumentsByStatus(status: DocumentStatus): Promise<number> {
+  return getDocumentStore().countByStatus(status);
 }

@@ -2,7 +2,7 @@ import { Markup } from 'telegraf';
 import { Language } from '../../types';
 import { t } from '../../i18n';
 import { Application } from '../../universities/types';
-import { getUniversityById } from '../../universities/catalog';
+import { getUniversityById } from '../../universities/university.service';
 import {
   DOC_APP_PREFIX,
   DOC_CANCEL,
@@ -11,20 +11,21 @@ import {
   DocumentType,
 } from '../../documents/types';
 
-export function applicationSelectionKeyboard(
+export async function applicationSelectionKeyboard(
   applications: Application[],
   language: Language,
 ) {
   const texts = t(language);
 
-  const rows = applications.map((app) => {
-    const university = getUniversityById(app.university_id, language);
-    const label = university
-      ? `${university.name} (${texts.countries[app.country]})`
-      : `#${app.id}`;
-
-    return [Markup.button.callback(label, `${DOC_APP_PREFIX}${app.id}`)];
-  });
+  const rows = await Promise.all(
+    applications.map(async (app) => {
+      const university = await getUniversityById(app.university_id, language);
+      const label = university
+        ? `${university.name} (${texts.countries[app.country]})`
+        : `#${app.id}`;
+      return [Markup.button.callback(label, `${DOC_APP_PREFIX}${app.id}`)];
+    }),
+  );
 
   rows.push([Markup.button.callback(texts.cancelUpload, DOC_CANCEL)]);
 

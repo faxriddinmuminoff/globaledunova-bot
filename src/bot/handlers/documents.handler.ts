@@ -1,4 +1,4 @@
-import { AppContext, getLanguage } from '../middleware/context.middleware';
+import { AppContext, getLanguage, getUser } from '../middleware/context.middleware';
 import { t } from '../../i18n';
 import { Language } from '../../types';
 import {
@@ -18,7 +18,9 @@ import {
   findDocumentsByTelegramId,
 } from '../../database/repositories/document.repository';
 import { isDuplicateDocumentError } from '../../database/postgres-errors';
-import { getUniversityById } from '../../universities/catalog';
+import { getUniversityById } from '../../universities/university.service';
+import { persistDocumentFile } from '../../storage/document-storage.service';
+import { trackDocumentUploaded } from '../../observability/metrics';
 import {
   ALLOWED_MIME_TYPES,
   DocumentStatus,
@@ -26,13 +28,47 @@ import {
 } from '../../documents/types';
 import { DegreeType } from '../../universities/types';
 import { changeApplicationStatusWithNotification } from '../../services/application.service';
+import { notifyManagerNewDocument } from '../../services/manager-alert.service';
+import { logDocumentUploaded } from '../../services/activity-log.service';
 import { logger } from '../../logger';
+import { config } from '../../config';
 
 interface ExtractedFile {
   telegramFileId: string;
   originalFileName: string;
   mimeType: string;
   fileSize: number;
+}
+
+const ALLOWED_EXTENSIONS_BY_MIME = new Map<string, string[]>([
+  ['application/pdf', ['.pdf']],
+  ['image/jpeg', ['.jpg', '.jpeg']],
+  ['image/png', ['.png']],
+  ['image/webp', ['.webp']],
+]);
+
+function getLowercaseExtension(fileName: string): string {
+  const index = fileName.lastIndexOf('.');
+  return index >= 0 ? fileName.slice(index).toLowerCase() : '';
+}
+
+function hasAllowedExtension(fileName: string, mimeType: string): boolean {
+  const allowed = ALLOWED_EXTENSIONS_BY_MIME.get(mimeType);
+  if (!allowed) return false;
+  return allowed.includes(getLowercaseExtension(fileName));
+}
+
+function withUploadTimeout<T>(promise: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error('document_upload_timeout')),
+      config.UPLOAD_TIMEOUT_MS,
+    );
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timeout));
+  });
 }
 
 function getDegreeLabel(language: Language, degree: DegreeType): string {
@@ -74,7 +110,7 @@ async function buildApplicationLabel(
   const application = await findApplicationById(applicationId, telegramId);
   if (!application) return `#${applicationId}`;
 
-  const university = getUniversityById(application.university_id, language);
+  const university = await getUniversityById(application.university_id, language);
   const texts = t(language);
   const universityName = university?.name ?? application.university_id;
   const degree = getDegreeLabel(language, application.degree);
@@ -130,7 +166,7 @@ export async function startDocumentsFlow(ctx: AppContext): Promise<void> {
 
   await ctx.reply(texts.selectApplicationForDocument, {
     parse_mode: 'Markdown',
-    ...applicationSelectionKeyboard(applications, language),
+    ...(await applicationSelectionKeyboard(applications, language)),
   });
 }
 
@@ -236,6 +272,16 @@ export async function handleDocumentUpload(ctx: AppContext): Promise<void> {
       return;
     }
 
+    if (!hasAllowedExtension(file.originalFileName, file.mimeType)) {
+      await ctx.reply(texts.invalidFileType);
+      return;
+    }
+
+    if (!Number.isFinite(file.fileSize) || file.fileSize <= 0) {
+      await ctx.reply(texts.invalidFileType);
+      return;
+    }
+
     if (file.fileSize > MAX_FILE_SIZE_BYTES) {
       await ctx.reply(texts.fileTooLarge);
       return;
@@ -248,13 +294,40 @@ export async function handleDocumentUpload(ctx: AppContext): Promise<void> {
       return;
     }
 
-    await createDocument({
+    const stored = await withUploadTimeout(
+      persistDocumentFile({
+        telegramFileId: file.telegramFileId,
+        originalFileName: file.originalFileName,
+        mimeType: file.mimeType,
+        fileSize: file.fileSize,
+      }),
+    );
+
+    const createdDocument = await createDocument({
       telegram_id: telegramId,
       application_id: applicationId,
       document_type: documentType,
-      telegram_file_id: file.telegramFileId,
+      telegram_file_id: stored.telegram_file_id,
       original_file_name: file.originalFileName,
+      storage_provider: stored.storage_provider,
+      storage_key: stored.storage_key,
+      storage_url: stored.storage_url,
+      file_size: stored.file_size,
+      mime_type: stored.mime_type,
+      checksum: stored.checksum,
     });
+
+    trackDocumentUploaded();
+
+    const user = getUser(ctx);
+    await notifyManagerNewDocument(
+      {
+        ...createdDocument,
+        student_name: user?.full_name ?? ctx.from?.first_name ?? null,
+      },
+      applicationId,
+    );
+    await logDocumentUploaded(telegramId, createdDocument.id, applicationId);
 
     if (application.status === 'submitted' || application.status === 'documents_required') {
       await changeApplicationStatusWithNotification(applicationId, telegramId, 'reviewing', language);

@@ -13,18 +13,27 @@ import {
 import {
   getUniversitiesForSelection,
   getUniversityById,
-} from '../../universities/catalog';
+} from '../../universities/university.service';
 import {
   applicationExists,
   createApplication,
   findApplicationsByTelegramId,
 } from '../../database/repositories/application.repository';
+import { findApplicationWithStudentById } from '../../database/repositories/admin.repository';
+import { notifyManagerNewApplication } from '../../services/manager-alert.service';
+import { recordInitialApplicationEvent } from '../../services/application-timeline.service';
+import { logApplicationCreated } from '../../services/activity-log.service';
 import { isDuplicateApplicationError } from '../../database/postgres-errors';
 import { CountryCode, DegreeType, UNI_BACK_COUNTRIES } from '../../universities/types';
 import {
   getApplicationStatusLabel,
   notifyApplicationSubmitted,
 } from '../../services/application-status.service';
+import {
+  canStudentApply,
+  filterUniversitiesForSoftLaunch,
+  isUniversityAvailableInSoftLaunch,
+} from '../../services/soft-launch.service';
 import { logger } from '../../logger';
 
 function getDegreeLabel(language: Language, degree: DegreeType): string {
@@ -83,7 +92,9 @@ async function showUniversitiesList(
   const texts = t(language);
   const countryName = texts.countries[country];
   const degreeName = getDegreeLabel(language, degree);
-  const universities = getUniversitiesForSelection(country, degree, language);
+  const universities = await filterUniversitiesForSoftLaunch(
+    await getUniversitiesForSelection(country, degree, language),
+  );
 
   const header = texts.universityListHeader(countryName, degreeName);
   const body = universities
@@ -129,6 +140,21 @@ export async function handleUniversityApply(ctx: AppContext): Promise<void> {
   const texts = t(language);
 
   try {
+    const applyCheck = await canStudentApply(telegramId);
+    if (!applyCheck.allowed) {
+      const msg =
+        applyCheck.reason === 'soft_launch_max_applications'
+          ? texts.softLaunchMaxApplications
+          : texts.softLaunchBlocked;
+      await ctx.answerCbQuery(msg, { show_alert: true });
+      return;
+    }
+
+    if (!(await isUniversityAvailableInSoftLaunch(parsed.universityId))) {
+      await ctx.answerCbQuery(texts.softLaunchBlocked, { show_alert: true });
+      return;
+    }
+
     const exists = await applicationExists(
       telegramId,
       parsed.universityId,
@@ -149,8 +175,15 @@ export async function handleUniversityApply(ctx: AppContext): Promise<void> {
     });
 
     await notifyApplicationSubmitted(application, language);
+    await recordInitialApplicationEvent(application);
+    await logApplicationCreated(telegramId, application.id);
 
-    const university = getUniversityById(parsed.universityId, language);
+    const enriched = await findApplicationWithStudentById(application.id);
+    if (enriched) {
+      await notifyManagerNewApplication(enriched);
+    }
+
+    const university = await getUniversityById(parsed.universityId, language);
     const countryName = texts.countries[parsed.country];
     const degreeName = getDegreeLabel(language, parsed.degree);
 
@@ -212,19 +245,21 @@ export async function showMyApplications(ctx: AppContext): Promise<void> {
     return;
   }
 
-  const entries = applications
-    .map((app, index) => {
-      const university = getUniversityById(app.university_id, language);
-      return texts.applicationEntry(
-        index + 1,
-        university?.name ?? app.university_id,
-        texts.countries[app.country],
-        getDegreeLabel(language, app.degree),
-        formatDate(app.created_at, language),
-        getApplicationStatusLabel(language, app.status),
-      );
-    })
-    .join('\n\n');
+  const entries = (
+    await Promise.all(
+      applications.map(async (app, index) => {
+        const university = await getUniversityById(app.university_id, language);
+        return texts.applicationEntry(
+          index + 1,
+          university?.name ?? app.university_id,
+          texts.countries[app.country],
+          getDegreeLabel(language, app.degree),
+          formatDate(app.created_at, language),
+          getApplicationStatusLabel(language, app.status),
+        );
+      }),
+    )
+  ).join('\n\n');
 
   await ctx.reply(`${texts.applicationsListTitle}\n\n${entries}`, {
     parse_mode: 'Markdown',

@@ -1,4 +1,4 @@
-import { queryOne } from '../index';
+import { queryOne, query } from '../index';
 import { Language, User } from '../../types';
 import { UserStore } from './types';
 
@@ -80,5 +80,52 @@ export class PostgresUserStore implements UserStore {
   async isUserOnboarded(telegramId: number): Promise<boolean> {
     const user = await this.findUserByTelegramId(telegramId);
     return Boolean(user?.phone_number && user?.language);
+  }
+
+  async findRecent(limit: number): Promise<User[]> {
+    const rows = await query<UserRow>(
+      `SELECT * FROM users
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return rows.map(mapUser);
+  }
+
+  async countAll(): Promise<number> {
+    const row = await queryOne<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM users',
+    );
+    return Number(row?.count ?? 0);
+  }
+
+  async searchByPhone(phone: string): Promise<User[]> {
+    const normalized = phone.replace(/\s+/g, '');
+    const rows = await query<UserRow>(
+      `SELECT * FROM users
+       WHERE REPLACE(phone_number, ' ', '') ILIKE $1
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [`%${normalized}%`],
+    );
+    return rows.map(mapUser);
+  }
+
+  async searchByTelegramId(telegramId: number): Promise<User | null> {
+    return this.findUserByTelegramId(telegramId);
+  }
+
+  async searchByName(name: string): Promise<User[]> {
+    const queryText = name.trim();
+    if (!queryText) return [];
+
+    const rows = await query<UserRow>(
+      `SELECT * FROM users
+       WHERE full_name ILIKE $1
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [`%${queryText}%`],
+    );
+    return rows.map(mapUser);
   }
 }

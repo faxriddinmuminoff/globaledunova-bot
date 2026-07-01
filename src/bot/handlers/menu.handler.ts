@@ -5,7 +5,8 @@ import { t, getLanguageLabel } from '../../i18n';
 import { config } from '../../config';
 import { OnboardingStep, Translations } from '../../types';
 import { handleChangeLanguage } from './language.handler';
-import { startUniversitiesFlow, showMyApplications } from './universities.handler';
+import { startUniversitiesFlow } from './universities.handler';
+import { showMyApplicationsWithDetails } from './application.handler';
 import {
   startDocumentsFlow,
   showMyDocuments,
@@ -54,7 +55,7 @@ export async function handleMenuAction(ctx: AppContext): Promise<void> {
   }
 
   if (text === texts.myApplications) {
-    await showMyApplications(ctx);
+    await showMyApplicationsWithDetails(ctx);
     return;
   }
 

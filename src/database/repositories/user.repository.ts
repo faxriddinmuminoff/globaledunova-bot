@@ -34,3 +34,15 @@ export async function getOrCreateUser(
 export async function isUserOnboarded(telegramId: number): Promise<boolean> {
   return getUserStore().isUserOnboarded(telegramId);
 }
+
+export async function searchUsersByPhone(phone: string): Promise<User[]> {
+  return getUserStore().searchByPhone(phone);
+}
+
+export async function searchUserByTelegramId(telegramId: number): Promise<User | null> {
+  return getUserStore().searchByTelegramId(telegramId);
+}
+
+export async function searchUsersByName(name: string): Promise<User[]> {
+  return getUserStore().searchByName(name);
+}

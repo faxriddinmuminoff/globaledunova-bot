@@ -9,10 +9,13 @@ export type ApplicationStatus =
   | 'submitted'
   | 'reviewing'
   | 'documents_required'
+  | 'documents_completed'
   | 'sent_to_university'
   | 'accepted'
   | 'rejected'
   | 'visa_processing'
+  | 'visa_approved'
+  | 'enrolled'
   | 'completed';
 
 export const APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -20,10 +23,13 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   'submitted',
   'reviewing',
   'documents_required',
+  'documents_completed',
   'sent_to_university',
   'accepted',
   'rejected',
   'visa_processing',
+  'visa_approved',
+  'enrolled',
   'completed',
 ];
 

@@ -20,4 +20,13 @@ export interface ApplicationStore {
   ): Promise<{ application: Application; previousStatus: ApplicationStatus } | null>;
 
   exists(telegramId: number, universityId: string, degree: DegreeType): Promise<boolean>;
+
+  findRecent(limit: number): Promise<Application[]>;
+
+  findByIdOnly(id: number): Promise<Application | null>;
+
+  updateStatusById(
+    id: number,
+    status: ApplicationStatus,
+  ): Promise<{ application: Application; previousStatus: ApplicationStatus } | null>;
 }

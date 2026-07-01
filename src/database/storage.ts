@@ -10,20 +10,46 @@ import { MemoryDocumentStore } from './stores/memory-document.store';
 import { PostgresDocumentStore } from './stores/postgres-document.store';
 import { MemoryNotificationStore } from './stores/memory-notification.store';
 import { PostgresNotificationStore } from './stores/postgres-notification.store';
+import { MemoryApplicationEventStore } from './stores/memory-application-event.store';
+import { PostgresApplicationEventStore } from './stores/postgres-application-event.store';
+import { MemoryActivityLogStore } from './stores/memory-activity-log.store';
+import { PostgresActivityLogStore } from './stores/postgres-activity-log.store';
+import { MemoryRequirementStore } from './stores/memory-requirement.store';
+import {
+  PostgresRequirementStore,
+  DEFAULT_REQUIREMENT_DOC_TYPES,
+} from './stores/postgres-requirement.store';
+import {
+  MemoryUniversityStore,
+  ensureMemoryUniversitySeed,
+} from './stores/memory-university.store';
+import { PostgresUniversityStore } from './stores/postgres-university.store';
 import { StorageBackend, UserStore } from './stores/types';
 import { ApplicationStore } from './stores/application-store.types';
 import { DocumentStore } from './stores/document-store.types';
 import { NotificationStore } from './stores/notification-store.types';
+import { ApplicationEventStore } from './stores/application-event-store.types';
+import { ActivityLogStore } from './stores/activity-log-store.types';
+import { RequirementStore } from './stores/requirement-store.types';
+import { UniversityStore } from '../universities/university-store.types';
+import { getAllUniversityIds } from '../universities/seed-data';
+import { seedAdminUsersFromEnv, refreshAdminCache } from '../rbac/rbac.service';
 
 let backend: StorageBackend = 'memory';
 let userStore: UserStore = new MemoryUserStore();
 let applicationStore: ApplicationStore = new MemoryApplicationStore();
 let documentStore: DocumentStore = new MemoryDocumentStore();
 let notificationStore: NotificationStore = new MemoryNotificationStore();
+let applicationEventStore: ApplicationEventStore = new MemoryApplicationEventStore();
+let activityLogStore: ActivityLogStore = new MemoryActivityLogStore();
+let requirementStore: RequirementStore = new MemoryRequirementStore();
+let universityStore: UniversityStore = new MemoryUniversityStore();
 
 export function getStorageBackend(): StorageBackend {
   return backend;
 }
+
+export { checkConnection } from './index';
 
 export function getUserStore(): UserStore {
   return userStore;
@@ -41,6 +67,33 @@ export function getNotificationStore(): NotificationStore {
   return notificationStore;
 }
 
+export function getApplicationEventStore(): ApplicationEventStore {
+  return applicationEventStore;
+}
+
+export function getActivityLogStore(): ActivityLogStore {
+  return activityLogStore;
+}
+
+export function getRequirementStore(): RequirementStore {
+  return requirementStore;
+}
+
+export function getUniversityStore(): UniversityStore {
+  return universityStore;
+}
+
+async function seedMemoryData(): Promise<void> {
+  await ensureMemoryUniversitySeed(universityStore as MemoryUniversityStore);
+  const ids = await getAllUniversityIds();
+  await requirementStore.seedDefaults(ids, DEFAULT_REQUIREMENT_DOC_TYPES);
+}
+
+async function seedEnterpriseData(): Promise<void> {
+  await seedAdminUsersFromEnv();
+  await refreshAdminCache();
+}
+
 export async function initializeStorage(): Promise<StorageBackend> {
   if (!config.DATABASE_URL) {
     if (isProduction) {
@@ -50,6 +103,8 @@ export async function initializeStorage(): Promise<StorageBackend> {
 
     logger.warn('DATABASE_URL is not set — using in-memory storage (development only)');
     useMemoryStorage();
+    await seedMemoryData();
+    await seedEnterpriseData();
     return backend;
   }
 
@@ -71,11 +126,14 @@ export async function initializeStorage(): Promise<StorageBackend> {
       );
       await closePool();
       useMemoryStorage();
+      await seedMemoryData();
+      await seedEnterpriseData();
       return backend;
     }
 
     usePostgresStorage();
     logger.info('Using PostgreSQL storage (all entities)');
+    await seedEnterpriseData();
     return backend;
   }
 
@@ -89,6 +147,8 @@ export async function initializeStorage(): Promise<StorageBackend> {
     'PostgreSQL unavailable — using in-memory storage (development only). Data will not persist across restarts.',
   );
   useMemoryStorage();
+  await seedMemoryData();
+  await seedEnterpriseData();
   return backend;
 }
 
@@ -98,6 +158,10 @@ function usePostgresStorage(): void {
   applicationStore = new PostgresApplicationStore();
   documentStore = new PostgresDocumentStore();
   notificationStore = new PostgresNotificationStore();
+  applicationEventStore = new PostgresApplicationEventStore();
+  activityLogStore = new PostgresActivityLogStore();
+  requirementStore = new PostgresRequirementStore();
+  universityStore = new PostgresUniversityStore();
 }
 
 function useMemoryStorage(): void {
@@ -106,10 +170,23 @@ function useMemoryStorage(): void {
   applicationStore = new MemoryApplicationStore();
   documentStore = new MemoryDocumentStore();
   notificationStore = new MemoryNotificationStore();
+  applicationEventStore = new MemoryApplicationEventStore();
+  activityLogStore = new MemoryActivityLogStore();
+  requirementStore = new MemoryRequirementStore();
+  universityStore = new MemoryUniversityStore();
 }
 
 export async function shutdownStorage(): Promise<void> {
   if (isPoolActive()) {
     await closePool();
   }
+}
+
+/** Resets all stores to fresh in-memory instances (test-only). */
+export async function resetStorageForTests(): Promise<void> {
+  if (isPoolActive()) {
+    await closePool();
+  }
+  useMemoryStorage();
+  await seedMemoryData();
 }

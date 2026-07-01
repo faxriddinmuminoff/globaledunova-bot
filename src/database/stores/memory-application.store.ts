@@ -70,4 +70,33 @@ export class MemoryApplicationStore implements ApplicationStore {
         app.degree === degree,
     );
   }
+
+  async findRecent(limit: number): Promise<Application[]> {
+    return this.applications
+      .map((app) => ({ ...app }))
+      .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
+      .slice(0, limit);
+  }
+
+  async findByIdOnly(id: number): Promise<Application | null> {
+    const app = this.applications.find((item) => item.id === id);
+    return app ? { ...app } : null;
+  }
+
+  async updateStatusById(
+    id: number,
+    status: ApplicationStatus,
+  ): Promise<{ application: Application; previousStatus: ApplicationStatus } | null> {
+    const app = this.applications.find((item) => item.id === id);
+    if (!app) return null;
+
+    const previousStatus = app.status;
+    if (previousStatus === status) {
+      return { application: { ...app }, previousStatus };
+    }
+
+    app.status = status;
+    app.updated_at = new Date();
+    return { application: { ...app }, previousStatus };
+  }
 }

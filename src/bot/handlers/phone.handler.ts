@@ -1,6 +1,7 @@
 import { Markup } from 'telegraf';
 import { AppContext, getLanguage } from '../middleware/context.middleware';
 import { updateUserPhone } from '../../database/repositories/user.repository';
+import { logUserRegistered } from '../../services/activity-log.service';
 import { mainMenuKeyboardForUser } from '../helpers/menu.helper';
 import { t } from '../../i18n';
 import { OnboardingStep } from '../../types';
@@ -36,6 +37,8 @@ export async function handleContact(ctx: AppContext): Promise<void> {
     ctx.session.user = user;
     ctx.session.language = user.language;
     ctx.session.onboardingStep = OnboardingStep.Complete;
+
+    await logUserRegistered(telegramId);
 
     const texts = t(user.language);
     await ctx.reply(texts.phoneReceived, Markup.removeKeyboard());

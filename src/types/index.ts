@@ -28,6 +28,11 @@ export interface SessionData {
   language: Language;
   user: User | null;
   documentFlow: DocumentUploadFlow | null;
+  adminMode: boolean;
+  adminSearchMode: import('../admin/types').AdminSearchMode | null;
+  adminSearchQuery: string | null;
+  adminSearchPage: number;
+  adminWizard: import('../admin/types').AdminWizardState | null;
 }
 
 export interface Translations {
@@ -137,6 +142,204 @@ export interface Translations {
     university: string,
     status: string,
   ) => string;
+  adminUnauthorized: string;
+  adminMenu: string;
+  adminNewApplications: string;
+  adminDocuments: string;
+  adminStudents: string;
+  adminStatistics: string;
+  adminBack: string;
+  adminBackToBot: string;
+  adminNoApplications: string;
+  adminNewApplicationsTitle: (count: number) => string;
+  adminApplicationEntry: (
+    studentName: string,
+    phone: string,
+    university: string,
+    country: string,
+    degree: string,
+    status: string,
+    createdDate: string,
+    applicationId: number,
+  ) => string;
+  adminApplicationDetails: (
+    applicationId: number,
+    studentName: string,
+    phone: string,
+    telegramId: number,
+    university: string,
+    country: string,
+    degree: string,
+    status: string,
+    createdDate: string,
+    updatedDate: string,
+  ) => string;
+  adminViewButton: string;
+  adminAcceptButton: string;
+  adminRequestDocumentsButton: string;
+  adminRejectButton: string;
+  adminApplicationNotFound: string;
+  adminStatusUpdated: (status: string) => string;
+  adminDocumentsTitle: string;
+  adminNoDocuments: string;
+  adminDocumentEntry: (
+    number: number,
+    studentName: string,
+    documentType: string,
+    fileName: string,
+    status: string,
+    uploadDate: string,
+    applicationId: number,
+  ) => string;
+  adminStudentsTitle: string;
+  adminNoStudents: string;
+  adminStudentEntry: (
+    number: number,
+    name: string,
+    phone: string,
+    language: string,
+    registeredDate: string,
+    telegramId: number,
+  ) => string;
+  adminStatisticsText: (
+    totalUsers: number,
+    totalApplications: number,
+    totalDocuments: number,
+    pendingReview: number,
+    accepted: number,
+    rejected: number,
+    documentsRequired: number,
+    pendingDocuments: number,
+    topCountries: string,
+    topUniversities: string,
+  ) => string;
+  adminSearch: string;
+  adminSearchTitle: string;
+  adminSearchByPhone: string;
+  adminSearchByTelegramId: string;
+  adminSearchByName: string;
+  adminSearchPromptPhone: string;
+  adminSearchPromptTelegramId: string;
+  adminSearchPromptName: string;
+  adminSearchNoResults: string;
+  adminSearchInvalidTelegramId: string;
+  adminSearchResultsTitle: (count: number) => string;
+  adminChecklistIcon: (state: 'missing' | 'pending' | 'verified' | 'rejected') => string;
+  adminDocumentChecklistTitle: string;
+  adminUploadedDocsTitle: string;
+  adminMissingDocsTitle: string;
+  adminNoUploadedDocuments: string;
+  adminAllDocumentsUploaded: string;
+  adminDocOpenButton: string;
+  adminDocVerifyButton: string;
+  adminDocRejectButton: string;
+  adminDocumentNotFound: string;
+  adminDocumentVerified: string;
+  adminDocumentRejected: string;
+  adminDocumentOpened: string;
+  managerNewApplicationAlert: (
+    studentName: string,
+    phone: string,
+    university: string,
+    country: string,
+    degree: string,
+    createdDate: string,
+    applicationId: number,
+  ) => string;
+  managerNewDocumentAlert: (
+    studentName: string,
+    phone: string,
+    university: string,
+    country: string,
+    degree: string,
+    documentType: string,
+    fileName: string,
+    uploadDate: string,
+    applicationId: number,
+  ) => string;
+  notificationDocumentVerifiedTitle: string;
+  notificationDocumentVerifiedMessage: (documentType: string) => string;
+  notificationDocumentRejectedTitle: string;
+  notificationDocumentRejectedMessage: (documentType: string) => string;
+  appDetailPage: (
+    university: string,
+    country: string,
+    degree: string,
+    status: string,
+    timeline: string,
+    checklist: string,
+    uploaded: string,
+    missing: string,
+    appId: number,
+  ) => string;
+  appNoTimeline: string;
+  appTimelineEntry: (date: string, fromStatus: string, toStatus: string) => string;
+  appRefreshButton: string;
+  appUploadMissingButton: string;
+  appContactManagerButton: string;
+  appRefreshed: string;
+  appContactReference: (appId: number) => string;
+  adminDashboard: string;
+  adminIncidents: string;
+  managerDashboardText: (
+    today: number,
+    month: number,
+    pending: number,
+    docsPending: number,
+    rate: number,
+    topCountries: string,
+    topUniversities: string,
+    activeStudents: string,
+  ) => string;
+  documentReminderTitle: string;
+  documentReminderMessage: (days: number) => string;
+  rateLimitExceeded: string;
+  adminDocDownloadButton: string;
+  adminSearchByApplicationId: string;
+  adminSearchByUniversity: string;
+  adminSearchByStatus: string;
+  adminSearchPromptApplicationId: string;
+  adminSearchPromptUniversity: string;
+  adminSearchPromptStatus: string;
+  adminSearchPageInfo: (page: number, totalPages: number, total: number) => string;
+  adminSettings: string;
+  adminUniversities: string;
+  adminBroadcasts: string;
+  adminBackups: string;
+  adminSettingsTitle: string;
+  adminSettingsManager: string;
+  adminSettingsReminder: string;
+  adminSettingsStorage: string;
+  adminSettingsNotifications: string;
+  adminSettingsMaintenance: string;
+  adminSettingsUpdated: (key: string) => string;
+  adminUniversitiesTitle: string;
+  adminUniversityAdd: string;
+  adminUniversityList: string;
+  adminUniversityWizardCountry: string;
+  adminUniversityWizardDegree: string;
+  adminUniversityWizardNameEn: string;
+  adminUniversityWizardConfirm: string;
+  adminUniversitySaved: (id: string) => string;
+  adminUniversityDeactivated: (id: string) => string;
+  adminBroadcastsTitle: string;
+  adminBroadcastCreate: string;
+  adminBroadcastAudienceAll: string;
+  adminBroadcastAudienceAccepted: string;
+  adminBroadcastAudienceReviewing: string;
+  adminBroadcastAudienceDocsRequired: string;
+  adminBroadcastEnterMessage: string;
+  adminBroadcastPreview: (message: string, targets: number) => string;
+  adminBroadcastQueued: (id: number) => string;
+  adminBroadcastCancelled: (id: number) => string;
+  adminBackupsTitle: string;
+  adminBackupsStatus: (last: string, size: string, retention: number) => string;
+  adminBackupsRun: string;
+  adminBackupsRestoreHint: string;
+  adminSearchPrev: string;
+  adminSearchNext: string;
+  softLaunchBlocked: string;
+  softLaunchMaxApplications: string;
 }
 
 declare module 'telegraf' {

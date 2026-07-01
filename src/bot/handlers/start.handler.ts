@@ -8,6 +8,7 @@ import { mainMenuKeyboardForUser } from '../helpers/menu.helper';
 import { t } from '../../i18n';
 import { OnboardingStep } from '../../types';
 import { logger } from '../../logger';
+import { isStudentWhitelisted } from '../../services/soft-launch.service';
 
 export async function handleStart(ctx: AppContext): Promise<void> {
   const telegramId = ctx.from?.id;
@@ -25,6 +26,12 @@ export async function handleStart(ctx: AppContext): Promise<void> {
     const onboarded = await isUserOnboarded(telegramId);
 
     if (onboarded) {
+      if (!(await isStudentWhitelisted(telegramId))) {
+        const texts = t(user.language);
+        await ctx.reply(texts.softLaunchBlocked);
+        return;
+      }
+
       ctx.session.onboardingStep = OnboardingStep.Complete;
       const texts = t(user.language);
       await ctx.reply(texts.mainMenu, await mainMenuKeyboardForUser(user.language, telegramId));

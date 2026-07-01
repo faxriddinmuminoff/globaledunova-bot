@@ -2,6 +2,7 @@ import { MiddlewareFn } from 'telegraf';
 import { AppContext, getLanguage } from './context.middleware';
 import { logger } from '../../logger';
 import { t } from '../../i18n';
+import { reportCriticalError } from '../../errors/error-reporter';
 
 export function errorMiddleware(): MiddlewareFn<AppContext> {
   return async (ctx, next) => {
@@ -16,6 +17,11 @@ export function errorMiddleware(): MiddlewareFn<AppContext> {
         },
         'Unhandled bot error',
       );
+      await reportCriticalError(error, {
+        telegramId: ctx.from?.id,
+        handler: ctx.updateType,
+        payload: ctx.update,
+      });
 
       const language = getLanguage(ctx);
       const texts = t(language);

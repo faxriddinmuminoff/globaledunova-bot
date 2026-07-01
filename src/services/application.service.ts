@@ -1,5 +1,4 @@
-import { updateApplicationStatus } from '../database/repositories/application.repository';
-import { notifyApplicationStatusChange } from './application-status.service';
+import { transitionApplicationStatus } from './application-timeline.service';
 import { Language } from '../types';
 import { ApplicationStatus } from '../universities/types';
 
@@ -9,13 +8,13 @@ export async function changeApplicationStatusWithNotification(
   newStatus: ApplicationStatus,
   language: Language,
 ): Promise<boolean> {
-  const result = await updateApplicationStatus(applicationId, telegramId, newStatus);
-  if (!result) return false;
+  const result = await transitionApplicationStatus({
+    applicationId,
+    newStatus,
+    changedBy: telegramId,
+    language,
+    notify: true,
+  });
 
-  const { application, previousStatus } = result;
-  if (previousStatus !== newStatus) {
-    await notifyApplicationStatusChange(application, previousStatus, language);
-  }
-
-  return true;
+  return result.success;
 }

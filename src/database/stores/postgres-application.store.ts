@@ -122,4 +122,47 @@ export class PostgresApplicationStore implements ApplicationStore {
     );
     return row?.exists ?? false;
   }
+
+  async findRecent(limit: number): Promise<Application[]> {
+    const rows = await query<ApplicationRow>(
+      `SELECT * FROM applications
+       ORDER BY created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+    return rows.map(mapApplication);
+  }
+
+  async findByIdOnly(id: number): Promise<Application | null> {
+    const row = await queryOne<ApplicationRow>(
+      'SELECT * FROM applications WHERE id = $1',
+      [id],
+    );
+    return row ? mapApplication(row) : null;
+  }
+
+  async updateStatusById(
+    id: number,
+    status: ApplicationStatus,
+  ): Promise<{ application: Application; previousStatus: ApplicationStatus } | null> {
+    const existing = await this.findByIdOnly(id);
+    if (!existing) return null;
+
+    const previousStatus = existing.status;
+    if (previousStatus === status) {
+      return { application: existing, previousStatus };
+    }
+
+    const row = await queryOne<ApplicationRow>(
+      `UPDATE applications
+       SET status = $2, updated_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id, status],
+    );
+
+    if (!row) return null;
+
+    return { application: mapApplication(row), previousStatus };
+  }
 }
