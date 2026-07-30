@@ -24,6 +24,8 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().optional(),
     S3_PUBLIC_BASE_URL: z.string().url().optional(),
     BACKUP_DIR: z.string().default('./backups'),
+    /** Directory holding the bot's own JSON data files. */
+    DATA_DIR: z.string().default('./data'),
     SOFT_LAUNCH_MODE: z
       .string()
       .optional()
