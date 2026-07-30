@@ -52,6 +52,23 @@ const envSchema = z
     SESSION_TTL_MS: z.coerce.number().int().min(60_000).default(24 * 60 * 60_000),
     UPLOAD_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30_000),
     TELEGRAM_SEND_TIMEOUT_MS: z.coerce.number().int().min(1000).default(10_000),
+
+    // --- Platform integration (Faza 0) ---------------------------------------
+    // Both URL and token must be set for the real client to be used; otherwise
+    // the bot falls back to the in-process stub. See platform.factory.ts.
+    PLATFORM_URL: z.string().url('PLATFORM_URL must be a valid URL').optional(),
+    PLATFORM_SERVICE_TOKEN: z.string().min(16, 'PLATFORM_SERVICE_TOKEN is too short').optional(),
+    PLATFORM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(15_000),
+    /** How often open applications are re-checked. 5 minutes is plenty for a
+     *  pipeline whose stages are performed by humans in a web panel. */
+    PLATFORM_POLL_INTERVAL_MS: z.coerce.number().int().min(30_000).default(5 * 60_000),
+    /** Applications stop being polled after this long without reaching a terminal
+     *  stage, so an abandoned row cannot be polled forever. */
+    PLATFORM_POLL_MAX_AGE_MS: z.coerce
+      .number()
+      .int()
+      .min(60 * 60_000)
+      .default(60 * 24 * 60 * 60_000),
   })
   .refine((data) => data.NODE_ENV !== 'production' || !!data.DATABASE_URL, {
     message: 'DATABASE_URL is required in production',

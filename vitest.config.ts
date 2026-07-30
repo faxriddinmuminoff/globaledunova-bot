@@ -5,6 +5,14 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    // Test defaults so a suite that imports `src/config` (directly or through the
+    // logger) does not depend on a developer's local .env file. Real secrets are
+    // never needed here: no test talks to Telegram or to the platform.
+    env: {
+      NODE_ENV: 'test',
+      BOT_TOKEN: 'test-bot-token',
+      LOG_LEVEL: 'fatal',
+    },
     coverage: {
       provider: 'v8',
       include: [
