@@ -264,4 +264,94 @@ export const en: Translations = {
   adminSearchNext: 'Next ➡',
   softLaunchBlocked: '⏳ Bot is in soft launch mode. Access is limited.',
   softLaunchMaxApplications: 'You reached the application limit during soft launch.',
+
+  orgApp: {
+    menuApply: '🏛 Apply to the platform',
+    menuMyApplications: '📋 My applications',
+
+    intro:
+      '🏛 *Application to join the platform*\n\nYou are applying to connect your institution to the platform. I will ask 8 questions and then request a copy of your charter.\n\nYou can go back at any step with ⬅️.',
+    stepHint: (current, total) => `Step ${current} / ${total}`,
+
+    askOrgType: '🏫 Choose the type of institution:',
+    orgTypeLabels: {
+      university: '🎓 University',
+      institute: '🏛 Institute',
+      college: '🏫 College',
+      'training-center': '📚 Training centre',
+      'corporate-academy': '🏢 Corporate academy',
+      other: '📄 Other',
+    },
+    askOrgName: '✍️ Write the *full official name* of the institution (as in the charter):',
+    askStir:
+      '🔢 Write the *STIR* (taxpayer identification number).\n\nDigits only, 9–14 of them. I will strip spaces and dashes myself.',
+    askLastName: '👤 Write the *surname* of the responsible person:',
+    askFirstName: '👤 Write the *given name* of the responsible person:',
+    askMiddleName:
+      '👤 Write the *patronymic* of the responsible person.\n\nIf there is none, press "Skip".',
+    askPhone:
+      '📞 Write the *phone number* of the responsible person, or share it with the button.\n\nFor example: `901234567` or `+998901234567`',
+    askCharter:
+      '📎 Send a *copy of the charter* (as a file).\n\nAllowed types: PDF, JPG, PNG. Maximum size: 20 MB.\n\n⚠️ Send an image as a *file*, not as a "photo", so the quality is preserved.',
+
+    confirmTitle: '✅ *Review your application*',
+    summary: (f) =>
+      `🏫 Type: *${f.organizationType}*\n` +
+      `🏛 Name: *${f.organizationName}*\n` +
+      `🔢 STIR: \`${f.stir}\`\n` +
+      `👤 Responsible: *${f.responsibleFullName}*\n` +
+      `📞 Phone: \`${f.phone}\`\n` +
+      `📎 Charter: ${f.charterFileName}`,
+
+    buttonBack: '⬅️ Back',
+    buttonCancel: '❌ Cancel',
+    buttonSkip: '⏭ Skip',
+    buttonSubmit: '📨 Submit application',
+    buttonSharePhone: '📞 Share number',
+
+    cancelled: '❌ Application cancelled. Use the menu to start again.',
+    alreadyInProgress:
+      'You have an unfinished application. Continue it, or press ❌ Cancel.',
+
+    errorRequired: '❌ This field cannot be empty. Please write it again.',
+    errorTooLong: '❌ Too long. Please write it shorter.',
+    errorStirFormat: '❌ STIR must be digits only, 9–14 of them.',
+    errorPhoneFormat: '❌ That phone number is not clear. For example: `901234567`',
+    errorFileType: '❌ Send a PDF, JPG or PNG file only.',
+    errorFileTooLarge: '❌ The file is larger than 20 MB. Send a smaller copy.',
+    errorExpectDocument: '📎 A file is expected now — please send the charter copy.',
+    errorPickFromButtons: 'Please choose one of the options above.',
+
+    submitting: '⏳ Submitting the application...',
+    submitted: (applicationId) =>
+      `✅ *Application received!*\n\nApplication id: \`${applicationId}\`\n\nA platform administrator will now review it. I will tell you here about every change.`,
+    submitFailedStirTaken:
+      '⚠️ An application with this STIR already exists.\n\nIf this is your institution, please contact the platform administrator.',
+    submitFailedValidation:
+      '❌ The application was not accepted: there is an error in the data. Please try again.',
+    submitFailedUnavailable:
+      '⚠️ The platform is not responding right now. Nothing was saved — please try again shortly.',
+
+    statusLabels: {
+      submitted: '📤 Submitted',
+      verify_passed: '🔍 Passed verification',
+      verify_failed: '❌ Failed verification',
+      pa_approved: '✅ Approved by the platform admin',
+      pa_rejected: '❌ Rejected by the platform admin',
+      owner_approved: '✅ Approved',
+      owner_rejected: '❌ Rejected',
+      activated: '🎉 Activated',
+    },
+    statusChanged: (organizationName, statusLabel) =>
+      `📬 *Application status changed*\n\n🏛 ${organizationName}\n📊 ${statusLabel}`,
+    statusReason: (reason) => `\n\n💬 Comment: ${reason}`,
+    activatedExtra:
+      '\n\nYour institution has been activated on the platform. The rector account and sign-in details are delivered separately, *not through this bot*.',
+
+    myApplicationsTitle: '📋 *My applications*',
+    myApplicationsEmpty:
+      '📋 *My applications*\n\nYou have no applications yet.\n\nTo apply, go to 🏛 Apply to the platform.',
+    myApplicationEntry: (f) =>
+      `*${f.index}.* ${f.organizationName}\n🏫 ${f.organizationType} · 🔢 \`${f.stir}\`\n📅 ${f.submittedDate}\n📊 ${f.statusLabel}`,
+  },
 };

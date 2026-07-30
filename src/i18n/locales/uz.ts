@@ -264,4 +264,94 @@ export const uz: Translations = {
   adminSearchNext: 'Keyingi ➡',
   softLaunchBlocked: '⏳ Bot soft launch rejimida. Kirish cheklangan.',
   softLaunchMaxApplications: 'Soft launch davomida ariza limitiga yetdingiz.',
+
+  orgApp: {
+    menuApply: '🏛 Platformaga ariza',
+    menuMyApplications: '📋 Arizalarim',
+
+    intro:
+      '🏛 *Platformaga qo\'shilish arizasi*\n\nTa\'lim muassasangizni platformaga ulash uchun ariza topshirasiz. 8 ta savol beraman, oxirida ustav nusxasini so\'rayman.\n\nHar qadamda ⬅️ bilan orqaga qaytishingiz mumkin.',
+    stepHint: (current, total) => `Qadam ${current} / ${total}`,
+
+    askOrgType: '🏫 Muassasa turini tanlang:',
+    orgTypeLabels: {
+      university: '🎓 Universitet',
+      institute: '🏛 Institut',
+      college: '🏫 Kollej',
+      'training-center': '📚 O\'quv markazi',
+      'corporate-academy': '🏢 Korporativ akademiya',
+      other: '📄 Boshqa',
+    },
+    askOrgName: '✍️ Muassasaning *to\'liq rasmiy nomini* yozing (ustavdagidek):',
+    askStir:
+      '🔢 *STIR* (soliq to\'lovchi identifikatsiya raqami) ni yozing.\n\nFaqat raqamlar, 9–14 xona. Bo\'shliq va chiziqchalarni o\'zim tozalaymen.',
+    askLastName: '👤 Mas\'ul shaxsning *familiyasini* yozing:',
+    askFirstName: '👤 Mas\'ul shaxsning *ismini* yozing:',
+    askMiddleName:
+      '👤 Mas\'ul shaxsning *otasining ismini* (sharifini) yozing.\n\nSharif bo\'lmasa — «O\'tkazib yuborish» tugmasini bosing.',
+    askPhone:
+      '📞 Mas\'ul shaxsning *telefon raqamini* yozing yoki tugma bilan ulashing.\n\nMasalan: `901234567` yoki `+998901234567`',
+    askCharter:
+      '📎 *Ustav nusxasini* yuboring (fayl sifatida).\n\nRuxsat etilgan turlar: PDF, JPG, PNG. Eng katta hajm: 20 MB.\n\n⚠️ Rasmni «foto» emas, *fayl* sifatida yuborsangiz sifati saqlanadi.',
+
+    confirmTitle: '✅ *Arizani tekshirib chiqing*',
+    summary: (f) =>
+      `🏫 Turi: *${f.organizationType}*\n` +
+      `🏛 Nomi: *${f.organizationName}*\n` +
+      `🔢 STIR: \`${f.stir}\`\n` +
+      `👤 Mas'ul: *${f.responsibleFullName}*\n` +
+      `📞 Telefon: \`${f.phone}\`\n` +
+      `📎 Ustav: ${f.charterFileName}`,
+
+    buttonBack: '⬅️ Orqaga',
+    buttonCancel: '❌ Bekor qilish',
+    buttonSkip: '⏭ O\'tkazib yuborish',
+    buttonSubmit: '📨 Arizani yuborish',
+    buttonSharePhone: '📞 Raqamni ulashish',
+
+    cancelled: '❌ Ariza bekor qilindi. Qaytadan boshlash uchun menyudan foydalaning.',
+    alreadyInProgress:
+      'Sizda tugallanmagan ariza bor. Uni davom ettiring yoki ❌ Bekor qilish tugmasini bosing.',
+
+    errorRequired: '❌ Bu maydon bo\'sh qolmasligi kerak. Qaytadan yozing.',
+    errorTooLong: '❌ Juda uzun. Qisqartirib yozing.',
+    errorStirFormat: '❌ STIR faqat raqamlardan, 9–14 xonadan iborat bo\'lishi kerak.',
+    errorPhoneFormat: '❌ Telefon raqami tushunarsiz. Masalan: `901234567`',
+    errorFileType: '❌ Faqat PDF, JPG yoki PNG fayl yuboring.',
+    errorFileTooLarge: '❌ Fayl 20 MB dan katta. Kichikroq nusxa yuboring.',
+    errorExpectDocument: '📎 Hozir fayl kutilmoqda — ustav nusxasini yuboring.',
+    errorPickFromButtons: 'Iltimos, yuqoridagi tugmalardan birini tanlang.',
+
+    submitting: '⏳ Ariza yuborilmoqda...',
+    submitted: (applicationId) =>
+      `✅ *Ariza qabul qilindi!*\n\nAriza raqami: \`${applicationId}\`\n\nEndi platforma admini uni ko'rib chiqadi. Har bir o'zgarishdan sizni shu yerda xabardor qilaman.`,
+    submitFailedStirTaken:
+      '⚠️ Bu STIR bo\'yicha ariza allaqachon mavjud.\n\nAgar bu sizning muassasangiz bo\'lsa — platforma admini bilan bog\'laning.',
+    submitFailedValidation:
+      '❌ Ariza qabul qilinmadi: ma\'lumotlarda xatolik bor. Qaytadan urinib ko\'ring.',
+    submitFailedUnavailable:
+      '⚠️ Platforma hozir javob bermayapti. Ma\'lumotlaringiz saqlanmadi — birozdan keyin qayta urinib ko\'ring.',
+
+    statusLabels: {
+      submitted: '📤 Yuborilgan',
+      verify_passed: '🔍 Tekshiruvdan o\'tdi',
+      verify_failed: '❌ Tekshiruvdan o\'tmadi',
+      pa_approved: '✅ Platforma admini ma\'qulladi',
+      pa_rejected: '❌ Platforma admini rad etdi',
+      owner_approved: '✅ Tasdiqlandi',
+      owner_rejected: '❌ Rad etildi',
+      activated: '🎉 Faollashtirildi',
+    },
+    statusChanged: (organizationName, statusLabel) =>
+      `📬 *Ariza holati o'zgardi*\n\n🏛 ${organizationName}\n📊 ${statusLabel}`,
+    statusReason: (reason) => `\n\n💬 Izoh: ${reason}`,
+    activatedExtra:
+      '\n\nMuassasangiz platformada faollashtirildi. Rektor hisobi va kirish ma\'lumotlari *bot orqali emas*, alohida yetkaziladi.',
+
+    myApplicationsTitle: '📋 *Arizalarim*',
+    myApplicationsEmpty:
+      '📋 *Arizalarim*\n\nHozircha arizangiz yo\'q.\n\nAriza topshirish uchun 🏛 Platformaga ariza bo\'limiga o\'ting.',
+    myApplicationEntry: (f) =>
+      `*${f.index}.* ${f.organizationName}\n🏫 ${f.organizationType} · 🔢 \`${f.stir}\`\n📅 ${f.submittedDate}\n📊 ${f.statusLabel}`,
+  },
 };

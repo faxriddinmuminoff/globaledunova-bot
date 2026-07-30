@@ -340,6 +340,96 @@ export interface Translations {
   adminSearchNext: string;
   softLaunchBlocked: string;
   softLaunchMaxApplications: string;
+  /**
+   * Faza 0 — the institution application flow.
+   *
+   * Kept as one nested namespace rather than another ~50 flat keys: the flat keys
+   * above belong to the study-abroad domain this bot is being repurposed away
+   * from, and most of them are removed in a later step. When that happens
+   * `orgApp` is what remains, already grouped.
+   */
+  orgApp: OrgAppTranslations;
+}
+
+export interface OrgAppTranslations {
+  menuApply: string;
+  menuMyApplications: string;
+
+  intro: string;
+  stepHint: (current: number, total: number) => string;
+
+  askOrgType: string;
+  orgTypeLabels: Record<
+    'university' | 'institute' | 'college' | 'training-center' | 'corporate-academy' | 'other',
+    string
+  >;
+  askOrgName: string;
+  askStir: string;
+  askLastName: string;
+  askFirstName: string;
+  askMiddleName: string;
+  askPhone: string;
+  askCharter: string;
+
+  confirmTitle: string;
+  summary: (fields: {
+    organizationType: string;
+    organizationName: string;
+    stir: string;
+    responsibleFullName: string;
+    phone: string;
+    charterFileName: string;
+  }) => string;
+
+  buttonBack: string;
+  buttonCancel: string;
+  buttonSkip: string;
+  buttonSubmit: string;
+  buttonSharePhone: string;
+
+  cancelled: string;
+  alreadyInProgress: string;
+
+  errorRequired: string;
+  errorTooLong: string;
+  errorStirFormat: string;
+  errorPhoneFormat: string;
+  errorFileType: string;
+  errorFileTooLarge: string;
+  errorExpectDocument: string;
+  errorPickFromButtons: string;
+
+  submitting: string;
+  submitted: (applicationId: string) => string;
+  submitFailedStirTaken: string;
+  submitFailedValidation: string;
+  submitFailedUnavailable: string;
+
+  statusLabels: Record<
+    | 'submitted'
+    | 'verify_passed'
+    | 'verify_failed'
+    | 'pa_approved'
+    | 'pa_rejected'
+    | 'owner_approved'
+    | 'owner_rejected'
+    | 'activated',
+    string
+  >;
+  statusChanged: (organizationName: string, statusLabel: string) => string;
+  statusReason: (reason: string) => string;
+  activatedExtra: string;
+
+  myApplicationsTitle: string;
+  myApplicationsEmpty: string;
+  myApplicationEntry: (fields: {
+    index: number;
+    organizationName: string;
+    organizationType: string;
+    stir: string;
+    statusLabel: string;
+    submittedDate: string;
+  }) => string;
 }
 
 declare module 'telegraf' {
