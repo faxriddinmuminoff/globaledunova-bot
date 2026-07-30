@@ -12,6 +12,11 @@ export default defineConfig({
       NODE_ENV: 'test',
       BOT_TOKEN: 'test-bot-token',
       LOG_LEVEL: 'fatal',
+      // Keep any file a test writes out of the real data/upload directories: the
+      // handler suite exercises the production charter path, which would otherwise
+      // drop PDFs into ./uploads and get them committed.
+      DATA_DIR: './.test-tmp/data',
+      LOCAL_STORAGE_DIR: './.test-tmp/uploads',
     },
     coverage: {
       provider: 'v8',
