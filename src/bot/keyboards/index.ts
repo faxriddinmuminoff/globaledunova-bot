@@ -27,9 +27,11 @@ export function mainMenuKeyboard(language: Language, unreadCount = 0) {
     unreadCount > 0 ? texts.notificationsWithCount(unreadCount) : texts.notifications;
 
   return Markup.keyboard([
-    [texts.universities],
-    [texts.myApplications, texts.documents],
-    [texts.myDocuments, notificationsLabel],
+    // Faza 0 — the institution application flow, first because it is what this bot
+    // is now for. The rows below belong to the study-abroad domain and are removed
+    // in the clean-up step.
+    [texts.orgApp.menuApply],
+    [texts.orgApp.menuMyApplications, notificationsLabel],
     [texts.contactManager, texts.profile],
   ]).resize();
 }

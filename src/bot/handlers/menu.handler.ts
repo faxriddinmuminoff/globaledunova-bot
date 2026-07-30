@@ -13,6 +13,7 @@ import {
   clearDocumentFlow,
 } from './documents.handler';
 import { showNotifications } from './notifications.handler';
+import { showMyOrgApplications, startOrgApplication } from './orgapp.handler';
 
 function isNotificationsMenuText(text: string, texts: Translations): boolean {
   return text === texts.notifications || (text.startsWith('📬') && /\(\d+\)$/.test(text));
@@ -20,6 +21,8 @@ function isNotificationsMenuText(text: string, texts: Translations): boolean {
 
 function getMenuTexts(language: Translations): string[] {
   return [
+    language.orgApp.menuApply,
+    language.orgApp.menuMyApplications,
     language.universities,
     language.myApplications,
     language.documents,
@@ -48,6 +51,16 @@ export async function handleMenuAction(ctx: AppContext): Promise<void> {
 
   const menuTexts = getMenuTexts(texts);
   if (!menuTexts.includes(text)) return;
+
+  if (text === texts.orgApp.menuApply) {
+    await startOrgApplication(ctx);
+    return;
+  }
+
+  if (text === texts.orgApp.menuMyApplications) {
+    await showMyOrgApplications(ctx);
+    return;
+  }
 
   if (text === texts.universities) {
     await startUniversitiesFlow(ctx);

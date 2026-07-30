@@ -16,6 +16,7 @@ const defaultSession = (): SessionData => ({
   adminSearchQuery: null,
   adminSearchPage: 1,
   adminWizard: null,
+  orgAppWizard: null,
 });
 
 export function sessionMiddleware(): MiddlewareFn<AppContext> {

@@ -61,6 +61,13 @@ import {
   ADMIN_SEARCH_UNI,
   ADMIN_SEARCH_STATUS,
 } from '../admin/types';
+import {
+  handleOrgAppContact,
+  handleOrgAppDocument,
+  handleOrgAppText,
+  isAwaitingCharter,
+  isOrgAppActive,
+} from './handlers/orgapp.handler';
 import { OnboardingStep } from '../types';
 import { logger } from '../logger';
 import { reportCriticalError } from '../errors/error-reporter';
@@ -166,22 +173,30 @@ export function createBot(token: string): Telegraf<AppContext> {
   bot.action(new RegExp(`^${APP_UPLOAD_PREFIX}`), handleApplicationCallbacks);
   bot.action(new RegExp(`^${APP_CONTACT_PREFIX}`), handleApplicationCallbacks);
 
-  bot.on('contact', handleContact);
+  bot.on('contact', async (ctx) => {
+    // The org-application wizard asks for a phone too, so it gets first refusal on
+    // a shared contact; otherwise this is onboarding's phone step.
+    if (await handleOrgAppContact(ctx)) return;
+    await handleContact(ctx);
+  });
 
   bot.on('document', async (ctx) => {
-    if (
-      ctx.session.onboardingStep === OnboardingStep.Complete &&
-      isAwaitingDocumentUpload(ctx)
-    ) {
+    if (ctx.session.onboardingStep !== OnboardingStep.Complete) return;
+    if (await handleOrgAppDocument(ctx)) return;
+    if (isAwaitingDocumentUpload(ctx)) {
       await handleDocumentUpload(ctx);
     }
   });
 
   bot.on('photo', async (ctx) => {
-    if (
-      ctx.session.onboardingStep === OnboardingStep.Complete &&
-      isAwaitingDocumentUpload(ctx)
-    ) {
+    if (ctx.session.onboardingStep !== OnboardingStep.Complete) return;
+    // A charter sent as a photo instead of a file: the wizard answers with the
+    // "send it as a file" message rather than letting the update fall through.
+    if (isAwaitingCharter(ctx)) {
+      await handleOrgAppDocument(ctx);
+      return;
+    }
+    if (isAwaitingDocumentUpload(ctx)) {
       await handleDocumentUpload(ctx);
     }
   });
@@ -221,6 +236,13 @@ export function createBot(token: string): Telegraf<AppContext> {
     }
 
     if (ctx.session.onboardingStep === OnboardingStep.Complete) {
+      // Before the menu: an open wizard owns the applicant's text, so an
+      // institution name that happens to match a menu label cannot derail it.
+      if (isOrgAppActive(ctx)) {
+        const handled = await handleOrgAppText(ctx);
+        if (handled) return;
+      }
+
       if (isAwaitingDocumentUpload(ctx)) {
         const handled = await handleDocumentUploadText(ctx);
         if (handled) return;

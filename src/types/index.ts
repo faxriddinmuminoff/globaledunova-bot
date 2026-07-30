@@ -33,6 +33,8 @@ export interface SessionData {
   adminSearchQuery: string | null;
   adminSearchPage: number;
   adminWizard: import('../admin/types').AdminWizardState | null;
+  /** Faza 0 — the institution application wizard, null when none is open. */
+  orgAppWizard: import('../orgapp/types').WizardState | null;
 }
 
 export interface Translations {
