@@ -334,19 +334,25 @@ export const ru: Translations = {
 
     statusLabels: {
       submitted: '📤 Отправлена',
-      verify_passed: '🔍 Прошла проверку',
       verify_failed: '❌ Не прошла проверку',
-      pa_approved: '✅ Одобрена администратором платформы',
+      in_review: '🔍 На рассмотрении',
       pa_rejected: '❌ Отклонена администратором платформы',
+      awaiting_owner: '⏳ Ожидает утверждения',
       owner_approved: '✅ Утверждена',
-      owner_rejected: '❌ Отклонена',
+      rejected: '❌ Отклонена',
+      needs_correction: '✏️ Требуется исправление',
       activated: '🎉 Активирована',
+      archived: '📦 В архиве',
     },
     statusChanged: (organizationName, statusLabel) =>
       `📬 *Статус заявки изменился*\n\n🏛 ${organizationName}\n📊 ${statusLabel}`,
     statusReason: (reason) => `\n\n💬 Комментарий: ${reason}`,
     activatedExtra:
       '\n\nВаше учреждение активировано на платформе. Аккаунт ректора и данные для входа передаются *не через бота*, а отдельно.',
+    actionNeededExtra:
+      '\n\n⚠️ На этом этапе *требуется действие с вашей стороны*. Прочитайте комментарий, исправьте замечание и свяжитесь с администратором платформы.',
+    rejectedExtra:
+      '\n\n⚠️ Это окончательное решение. Указанный ИНН остаётся занятым, поэтому новая заявка не будет принята автоматически — свяжитесь с администратором платформы.',
 
     myApplicationsTitle: '📋 *Мои заявки*',
     myApplicationsEmpty:

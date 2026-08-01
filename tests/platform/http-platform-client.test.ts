@@ -18,19 +18,14 @@ function input(overrides: Partial<CreateApplicationInput> = {}): CreateApplicati
     organizationName: 'Samarqand iqtisodiyot kolleji',
     organizationType: 'college',
     stir: '308912455',
-    responsible: {
-      lastName: 'Rustamova',
-      firstName: 'Nigora',
-      middleName: 'Baxtiyorovna',
-      phone: '+998662213040',
-    },
+    responsiblePersonName: 'Rustamova Nigora Baxtiyorovna',
+    phone: '+998662213040',
     contactTelegramId: 777,
     documents: [
       {
-        kind: 'charter',
-        fileName: 'ustav.pdf',
+        documentType: 'charter',
         storageRef: 'local://org-apps/2026/cd34.pdf',
-        sizeBytes: 90210,
+        uploadedAt: '2026-07-30T10:00:00.000Z',
         sha256: 'b'.repeat(64),
       },
     ],
@@ -80,18 +75,16 @@ describe('HttpPlatformClient — request shape', () => {
     expect(body.source).toBe('telegram-bot');
     // The key travels as a header, not in the body.
     expect(body.idempotencyKey).toBeUndefined();
-    // Name parts stay separate — nothing is joined into one string.
-    expect(body.responsible).toEqual({
-      lastName: 'Rustamova',
-      firstName: 'Nigora',
-      middleName: 'Baxtiyorovna',
-      phone: '+998662213040',
-    });
+    // The platform stores ONE name string and a top-level phone; the bot composes
+    // the three parts it collected rather than making the platform split them.
+    expect(body.responsiblePersonName).toBe('Rustamova Nigora Baxtiyorovna');
+    expect(body.phone).toBe('+998662213040');
+    expect(body.responsible).toBeUndefined();
   });
 
   it('url-encodes the application id when reading status', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse(200, { status: 'pa_approved', updatedAt: '2026-07-30T11:00:00.000Z' }),
+      jsonResponse(200, { status: 'platform_admin_review', updatedAt: '2026-07-30T11:00:00.000Z' }),
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -100,7 +93,7 @@ describe('HttpPlatformClient — request shape', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       `${BASE}/integrations/telegram/organization-applications/a%20b%2Fc`,
     );
-    expect(status.status).toBe('pa_approved');
+    expect(status.status).toBe('platform_admin_review');
   });
 });
 

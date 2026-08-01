@@ -21,6 +21,7 @@ import {
   MAX_ORGANIZATION_NAME_LENGTH,
   WIZARD_STEPS,
   WizardDraft,
+  WizardStep,
 } from '../../src/orgapp/types';
 
 describe('wizard navigation', () => {
@@ -36,8 +37,8 @@ describe('wizard navigation', () => {
   });
 
   it('walks forward through every step in order', () => {
-    let step = WIZARD_STEPS[0];
-    const visited = [step];
+    let step: WizardStep = WIZARD_STEPS[0];
+    const visited: WizardStep[] = [step];
     for (let i = 0; i < WIZARD_STEPS.length; i += 1) {
       const advanced = nextStep(step);
       if (advanced === step) break;
@@ -207,7 +208,8 @@ describe('completeness', () => {
     middleName: 'Anvarovich',
     phone: '+998712001020',
     charter: {
-      kind: 'charter',
+      documentType: 'charter',
+      uploadedAt: '2026-07-30T10:00:00.000Z',
       fileName: 'ustav.pdf',
       storageRef: 'local://a.pdf',
       sizeBytes: 10,

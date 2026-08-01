@@ -43,7 +43,8 @@ describe('storeCharter', () => {
     const expectedSha = crypto.createHash('sha256').update(bytes).digest('hex');
     expect(result.value.sha256).toBe(expectedSha);
     expect(result.value.sizeBytes).toBe(bytes.length);
-    expect(result.value.kind).toBe('charter');
+    expect(result.value.documentType).toBe('charter');
+    expect(Date.parse(result.value.uploadedAt)).not.toBeNaN();
     expect(result.value.fileName).toBe('ustav.pdf');
     expect(result.value.storageRef).toBe(`local://org-apps/${expectedSha.slice(0, 32)}.pdf`);
 

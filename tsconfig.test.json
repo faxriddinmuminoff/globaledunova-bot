@@ -1,0 +1,34 @@
+{
+  // The build config deliberately compiles only `src`, because `dist` must not
+  // contain tests. That left the whole test suite untypechecked, and it showed:
+  // a fixture kept building charter objects with a `kind` field after the
+  // contract renamed it to `documentType`, and every test still passed, because
+  // vitest does not typecheck.
+  //
+  // This config typechecks source AND tests and emits nothing.
+  // Run it with `npm run typecheck`; `npm run lint` runs both configs.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The build config pins rootDir to `src` so `dist` mirrors it. Nothing is
+    // emitted here, so that constraint would only get in the way.
+    "rootDir": "."
+  },
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
+  // These six files carry 14 type errors that PRE-DATE the Faza 0 work — they
+  // were never typechecked, so the errors were never visible. Every one of them
+  // tests the study-abroad domain that Faza 0 replaces, so they are excluded
+  // rather than repaired: fixing tests for code scheduled for deletion is waste.
+  // When that domain is removed, delete these lines with it — if any file
+  // survives the removal, its errors must be fixed instead of re-excluded.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests/bot/admin-rbac.test.ts",
+    "tests/repositories/admin.repository.test.ts",
+    "tests/services/admin-search-format.test.ts",
+    "tests/services/admin-search.service.test.ts",
+    "tests/services/admin-university.service.test.ts",
+    "tests/telegram/telegram-client.test.ts"
+  ]
+}

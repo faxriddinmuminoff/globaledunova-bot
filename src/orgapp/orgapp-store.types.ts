@@ -1,4 +1,4 @@
-import { PlatformApplicationStatus } from '../platform/types';
+import { BotStatus, PlatformApplicationStatus } from '../platform/types';
 import { OrgApplicationRecord } from './types';
 
 export interface OrgApplicationStatusPatch {
@@ -36,10 +36,7 @@ export interface OrgApplicationStore {
    * one that marked it — so the caller can send exactly once even if two workers
    * race.
    */
-  markNotified(
-    applicationId: string,
-    status: PlatformApplicationStatus,
-  ): Promise<boolean>;
+  markNotified(applicationId: string, status: BotStatus): Promise<boolean>;
 
   countAll(): Promise<number>;
 }

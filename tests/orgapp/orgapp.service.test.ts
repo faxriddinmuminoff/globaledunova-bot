@@ -26,7 +26,8 @@ function draft(overrides: Partial<WizardDraft> = {}): WizardDraft {
     middleName: 'Anvarovich',
     phone: '+998712001020',
     charter: {
-      kind: 'charter',
+      documentType: 'charter',
+      uploadedAt: '2026-07-30T10:00:00.000Z',
       fileName: 'ustav.pdf',
       storageRef: 'local://org-apps/abc.pdf',
       sizeBytes: 1024,
@@ -198,11 +199,11 @@ describe('refreshApplication', () => {
 
   it('reports a notification exactly once per new status', async () => {
     const id = await submitted();
-    platform.setStatus(id, 'pa_approved');
+    platform.setStatus(id, 'platform_admin_review');
 
     const first = await refreshApplication(id);
     expect(first?.previousStatus).toBe('submitted');
-    expect(first?.record.status).toBe('pa_approved');
+    expect(first?.record.status).toBe('platform_admin_review');
     expect(first?.shouldNotify).toBe(true);
 
     // A second poll with no further change must stay silent.
@@ -210,18 +211,30 @@ describe('refreshApplication', () => {
     expect(second?.shouldNotify).toBe(false);
   });
 
-  it('does not re-announce a status the applicant already saw, even if it recurs', async () => {
+  it('does not re-announce a stage the applicant already saw, even if it recurs', async () => {
     const id = await submitted();
 
-    platform.setStatus(id, 'pa_approved');
+    platform.setStatus(id, 'ready_for_owner');
     expect((await refreshApplication(id))?.shouldNotify).toBe(true);
 
-    platform.setStatus(id, 'verify_passed');
+    platform.setStatus(id, 'system_verify_passed');
     expect((await refreshApplication(id))?.shouldNotify).toBe(true);
 
-    // Back to a stage already announced — a status change, but nothing new to say.
-    platform.setStatus(id, 'pa_approved');
+    // Back to a stage already announced — a raw change, nothing new to say.
+    platform.setStatus(id, 'owner_pending');
     expect((await refreshApplication(id))?.shouldNotify).toBe(false);
+  });
+
+  it('stays silent when the raw stage moves but the applicant would see no change', async () => {
+    const id = await submitted();
+
+    // draft -> submitted -> system_verify_running all read as "submitted".
+    platform.setStatus(id, 'system_verify_running');
+    const transition = await refreshApplication(id);
+
+    expect(transition?.previousStatus).toBe('submitted');
+    expect(transition?.record.status).toBe('system_verify_running');
+    expect(transition?.shouldNotify).toBe(false);
   });
 
   it('carries the rejection reason and the activated organization id through', async () => {

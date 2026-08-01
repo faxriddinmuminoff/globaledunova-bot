@@ -1,4 +1,4 @@
-import { PlatformApplicationStatus, isTerminalStatus } from '../platform/types';
+import { BotStatus, isTerminalStatus } from '../platform/types';
 import { OrgApplicationStatusPatch, OrgApplicationStore } from './orgapp-store.types';
 import { OrgApplicationRecord } from './types';
 
@@ -52,10 +52,7 @@ export class MemoryOrgApplicationStore implements OrgApplicationStore {
     return { ...record };
   }
 
-  async markNotified(
-    applicationId: string,
-    status: PlatformApplicationStatus,
-  ): Promise<boolean> {
+  async markNotified(applicationId: string, status: BotStatus): Promise<boolean> {
     const record = this.records.get(applicationId);
     if (!record) return false;
     if (record.notifiedStatuses.includes(status)) return false;

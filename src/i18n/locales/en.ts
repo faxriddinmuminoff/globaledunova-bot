@@ -334,19 +334,25 @@ export const en: Translations = {
 
     statusLabels: {
       submitted: '📤 Submitted',
-      verify_passed: '🔍 Passed verification',
       verify_failed: '❌ Failed verification',
-      pa_approved: '✅ Approved by the platform admin',
+      in_review: '🔍 Under review',
       pa_rejected: '❌ Rejected by the platform admin',
+      awaiting_owner: '⏳ Awaiting approval',
       owner_approved: '✅ Approved',
-      owner_rejected: '❌ Rejected',
+      rejected: '❌ Rejected',
+      needs_correction: '✏️ Correction required',
       activated: '🎉 Activated',
+      archived: '📦 Archived',
     },
     statusChanged: (organizationName, statusLabel) =>
       `📬 *Application status changed*\n\n🏛 ${organizationName}\n📊 ${statusLabel}`,
     statusReason: (reason) => `\n\n💬 Comment: ${reason}`,
     activatedExtra:
       '\n\nYour institution has been activated on the platform. The rector account and sign-in details are delivered separately, *not through this bot*.',
+    actionNeededExtra:
+      '\n\n⚠️ This stage *needs action from you*. Read the comment, fix what was raised, and contact the platform administrator.',
+    rejectedExtra:
+      '\n\n⚠️ This is a final decision. The STIR you used stays reserved, so a new application will not be accepted automatically — please contact the platform administrator.',
 
     myApplicationsTitle: '📋 *My applications*',
     myApplicationsEmpty:

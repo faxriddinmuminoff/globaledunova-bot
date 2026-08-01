@@ -5,6 +5,8 @@ import {
   PlatformError,
   composeFullName,
   isTerminalStatus,
+  toBotStatus,
+  toDocumentPayload,
 } from '../platform/types';
 import { getOrgApplicationStore } from './orgapp-store.factory';
 import { OrgApplicationRecord, WizardDraft } from './types';
@@ -43,12 +45,14 @@ export async function submitApplication(
     return { ok: false, reason: 'incomplete' };
   }
 
-  const responsible = {
-    lastName: draft.lastName ?? '',
-    firstName: draft.firstName ?? '',
-    middleName: draft.middleName ?? '',
-    phone: draft.phone ?? '',
-  };
+  // The bot collects the name in three parts and composes it here, because the
+  // platform stores ONE `responsiblePersonName` string and would otherwise have
+  // to split it — the exact mistake that once stored a surname as a given name.
+  const responsiblePersonName = composeFullName({
+    lastName: draft.lastName,
+    firstName: draft.firstName,
+    middleName: draft.middleName,
+  });
 
   try {
     const created = await getPlatformClient().createOrganizationApplication({
@@ -56,9 +60,12 @@ export async function submitApplication(
       organizationName: draft.organizationName!,
       organizationType: draft.organizationType!,
       stir: draft.stir!,
-      responsible,
+      responsiblePersonName,
+      phone: draft.phone ?? '',
       contactTelegramId: input.telegramId,
-      documents: [draft.charter!],
+      // Only the four keys the platform's normalizer keeps; anything else would
+      // be silently dropped, which reads as "sent" but is not.
+      documents: [toDocumentPayload(draft.charter!)],
     });
 
     const record: OrgApplicationRecord = {
@@ -67,13 +74,13 @@ export async function submitApplication(
       organizationName: draft.organizationName!,
       organizationType: draft.organizationType!,
       stir: draft.stir!,
-      responsibleFullName: composeFullName(responsible),
+      responsibleFullName: responsiblePersonName,
       status: created.status,
       submittedAt: created.createdAt,
       lastCheckedAt: created.createdAt,
-      // The applicant has just been told it was submitted, so that status is
+      // The applicant has just been told it was submitted, so that stage is
       // already announced and must not be re-sent by the first poll.
-      notifiedStatuses: [created.status],
+      notifiedStatuses: [toBotStatus(created.status)],
     };
 
     const saved = await getOrgApplicationStore().save(record);
@@ -157,10 +164,16 @@ export async function refreshApplication(
 
   if (!updated) return null;
 
-  const moved = existing.status !== status.status;
-  const shouldNotify = moved
-    ? await store.markNotified(applicationId, status.status)
-    : false;
+  // Compare what the APPLICANT would see, not the raw stage. The platform moves
+  // through several stages that mean the same thing to them — draft, submitted
+  // and system_verify_running all read as "submitted" — and messaging on each
+  // would be noise, not information.
+  const previousVisible = toBotStatus(existing.status);
+  const currentVisible = toBotStatus(status.status);
+  const shouldNotify =
+    previousVisible !== currentVisible
+      ? await store.markNotified(applicationId, currentVisible)
+      : false;
 
   return { record: updated, previousStatus: existing.status, shouldNotify };
 }

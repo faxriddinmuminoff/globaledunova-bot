@@ -3,7 +3,7 @@ import path from 'node:path';
 import { logger } from '../logger';
 import { MemoryOrgApplicationStore } from './memory-orgapp.store';
 import { OrgApplicationRecord } from './types';
-import { APPLICATION_STATUSES } from '../platform/types';
+import { APPLICATION_STATUSES, BOT_STATUSES } from '../platform/types';
 
 /**
  * JSON-file persistence.
@@ -119,9 +119,9 @@ function normalizeRecord(row: unknown): OrgApplicationRecord | null {
 
   const notified = Array.isArray(candidate.notifiedStatuses)
     ? candidate.notifiedStatuses.filter(
-        (value): value is OrgApplicationRecord['status'] =>
+        (value): value is OrgApplicationRecord['notifiedStatuses'][number] =>
           typeof value === 'string' &&
-          (APPLICATION_STATUSES as readonly string[]).includes(value),
+          (BOT_STATUSES as readonly string[]).includes(value),
       )
     : [];
 

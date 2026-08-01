@@ -23,7 +23,8 @@ function draft(stir: string): WizardDraft {
     middleName: '',
     phone: '+998662213040',
     charter: {
-      kind: 'charter',
+      documentType: 'charter',
+      uploadedAt: '2026-07-30T10:00:00.000Z',
       fileName: 'ustav.pdf',
       storageRef: 'local://org-apps/x.pdf',
       sizeBytes: 100,
@@ -83,7 +84,7 @@ describe('pollOpenApplications', () => {
 
   it('notifies the applicant once when the stage moves', async () => {
     const id = await submit(555, '100000002');
-    platform.setStatus(id, 'pa_approved');
+    platform.setStatus(id, 'platform_admin_review');
 
     const notify = vi.fn();
     const first = await pollOpenApplications(notify, resolveLanguage);
@@ -92,7 +93,7 @@ describe('pollOpenApplications', () => {
     expect(first.notified).toBe(1);
     expect(notify).toHaveBeenCalledTimes(1);
     expect(notify.mock.calls[0][0]).toBe(555);
-    expect(notify.mock.calls[0][1]).toContain('Platforma admini ma');
+    expect(notify.mock.calls[0][1]).toContain('Ko\'rib chiqilmoqda');
 
     // A second pass with no further change must not message them again.
     const second = await pollOpenApplications(notify, resolveLanguage);
@@ -133,7 +134,7 @@ describe('pollOpenApplications', () => {
   it('keeps going after one application fails', async () => {
     await submit(1, '100000006');
     const goodId = await submit(2, '100000007');
-    platform.setStatus(goodId, 'pa_approved');
+    platform.setStatus(goodId, 'ready_for_owner');
 
     const notify = vi
       .fn()
@@ -142,7 +143,7 @@ describe('pollOpenApplications', () => {
       .mockResolvedValue(undefined);
 
     const brokenId = await submit(3, '100000008');
-    platform.setStatus(brokenId, 'verify_passed');
+    platform.setStatus(brokenId, 'system_verify_passed');
 
     const result = await pollOpenApplications(notify, resolveLanguage);
 
@@ -176,7 +177,7 @@ describe('pollOpenApplications', () => {
 
   it('skips an application older than the polling age limit', async () => {
     const id = await submit(1, '100000010');
-    platform.setStatus(id, 'pa_approved');
+    platform.setStatus(id, 'platform_admin_review');
 
     const notify = vi.fn();
     const farFuture = Date.now() + config.PLATFORM_POLL_MAX_AGE_MS + 60_000;
@@ -203,7 +204,7 @@ describe('pollOpenApplications', () => {
 
   it('survives a language lookup failure by counting it as a failed row', async () => {
     const id = await submit(1, '100000012');
-    platform.setStatus(id, 'pa_approved');
+    platform.setStatus(id, 'platform_admin_review');
 
     const notify = vi.fn();
     const result = await pollOpenApplications(notify, async () => {

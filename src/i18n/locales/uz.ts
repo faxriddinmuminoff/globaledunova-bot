@@ -334,19 +334,25 @@ export const uz: Translations = {
 
     statusLabels: {
       submitted: '📤 Yuborilgan',
-      verify_passed: '🔍 Tekshiruvdan o\'tdi',
       verify_failed: '❌ Tekshiruvdan o\'tmadi',
-      pa_approved: '✅ Platforma admini ma\'qulladi',
+      in_review: '🔍 Ko\'rib chiqilmoqda',
       pa_rejected: '❌ Platforma admini rad etdi',
+      awaiting_owner: '⏳ Tasdiqlash kutilmoqda',
       owner_approved: '✅ Tasdiqlandi',
-      owner_rejected: '❌ Rad etildi',
+      rejected: '❌ Rad etildi',
+      needs_correction: '✏️ Tuzatish talab qilinadi',
       activated: '🎉 Faollashtirildi',
+      archived: '📦 Arxivlandi',
     },
     statusChanged: (organizationName, statusLabel) =>
       `📬 *Ariza holati o'zgardi*\n\n🏛 ${organizationName}\n📊 ${statusLabel}`,
     statusReason: (reason) => `\n\n💬 Izoh: ${reason}`,
     activatedExtra:
       '\n\nMuassasangiz platformada faollashtirildi. Rektor hisobi va kirish ma\'lumotlari *bot orqali emas*, alohida yetkaziladi.',
+    actionNeededExtra:
+      '\n\n⚠️ Bu bosqichda *sizdan harakat kutilmoqda*. Izohni o\'qing, kamchilikni tuzating va platforma admini bilan bog\'laning.',
+    rejectedExtra:
+      '\n\n⚠️ Bu yakuniy qaror. Ayni STIR raqami band bo\'lib qoladi, shuning uchun yangi ariza avtomatik qabul qilinmaydi — platforma admini bilan bog\'laning.',
 
     myApplicationsTitle: '📋 *Arizalarim*',
     myApplicationsEmpty:

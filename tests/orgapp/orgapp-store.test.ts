@@ -55,15 +55,24 @@ describe('MemoryOrgApplicationStore', () => {
 
   it('lists only non-terminal applications as open', async () => {
     await store.save(record({ applicationId: 'open-1', status: 'submitted' }));
-    await store.save(record({ applicationId: 'open-2', status: 'pa_approved' }));
+    await store.save(record({ applicationId: 'open-2', status: 'ready_for_owner' }));
     await store.save(record({ applicationId: 'open-3', status: 'owner_approved' }));
+    // Correctable, so still open — the applicant may yet fix and resume these.
+    await store.save(record({ applicationId: 'open-4', status: 'system_verify_blocked' }));
+    await store.save(record({ applicationId: 'open-5', status: 'return_for_correction' }));
     await store.save(record({ applicationId: 'done-1', status: 'activated' }));
     await store.save(record({ applicationId: 'done-2', status: 'owner_rejected' }));
-    await store.save(record({ applicationId: 'done-3', status: 'verify_failed' }));
-    await store.save(record({ applicationId: 'done-4', status: 'pa_rejected' }));
+    await store.save(record({ applicationId: 'done-3', status: 'platform_admin_rejected' }));
+    await store.save(record({ applicationId: 'done-4', status: 'archived' }));
 
     const open = await store.listOpen();
-    expect(open.map((r) => r.applicationId).sort()).toEqual(['open-1', 'open-2', 'open-3']);
+    expect(open.map((r) => r.applicationId).sort()).toEqual([
+      'open-1',
+      'open-2',
+      'open-3',
+      'open-4',
+      'open-5',
+    ]);
   });
 
   it('applies a status patch', async () => {
@@ -82,12 +91,12 @@ describe('MemoryOrgApplicationStore', () => {
   it('does not erase a rejection reason on a later patch that omits it', async () => {
     await store.save(record());
     await store.applyStatus('app-1', {
-      status: 'pa_rejected',
+      status: 'platform_admin_rejected',
       rejectionReason: 'Ustav o‘qilmadi',
       lastCheckedAt: '2026-07-30T11:00:00.000Z',
     });
     await store.applyStatus('app-1', {
-      status: 'pa_rejected',
+      status: 'platform_admin_rejected',
       lastCheckedAt: '2026-07-30T12:00:00.000Z',
     });
 
@@ -102,8 +111,8 @@ describe('MemoryOrgApplicationStore', () => {
 
   it('marks a status notified exactly once', async () => {
     await store.save(record());
-    expect(await store.markNotified('app-1', 'pa_approved')).toBe(true);
-    expect(await store.markNotified('app-1', 'pa_approved')).toBe(false);
+    expect(await store.markNotified('app-1', 'in_review')).toBe(true);
+    expect(await store.markNotified('app-1', 'in_review')).toBe(false);
     expect(await store.markNotified('app-1', 'activated')).toBe(true);
   });
 

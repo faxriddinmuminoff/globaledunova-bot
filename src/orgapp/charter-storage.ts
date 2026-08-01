@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '../config';
 import { logger } from '../logger';
-import { ApplicationDocumentRef } from '../platform/types';
+import { StoredDocument } from '../platform/types';
 import { MAX_CHARTER_SIZE_BYTES, StepResult } from './types';
 import { validateCharterFile } from './wizard';
 
@@ -28,7 +28,7 @@ export interface CharterDeps {
   baseDir?: string;
 }
 
-export type StoreCharterResult = StepResult<ApplicationDocumentRef>;
+export type StoreCharterResult = StepResult<StoredDocument>;
 
 export const defaultFetchBytes = async (url: string): Promise<Buffer> => {
   const response = await fetch(url);
@@ -95,7 +95,8 @@ export async function storeCharter(
   return {
     ok: true,
     value: {
-      kind: 'charter',
+      documentType: 'charter',
+      uploadedAt: new Date().toISOString(),
       fileName: source.fileName,
       storageRef: `local://${CHARTER_SUBDIR}/${key}`,
       sizeBytes: buffer.length,

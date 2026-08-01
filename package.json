@@ -9,10 +9,11 @@
     "dev": "tsx watch src/index.ts",
     "migrate": "node dist/database/migrate.js",
     "migrate:rollback": "node dist/database/migrate.js --rollback",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json"
   },
   "engines": {
     "node": ">=20.0.0"

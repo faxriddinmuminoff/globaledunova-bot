@@ -3,7 +3,7 @@ import { Language } from '../types';
 import { escapeLegacyMarkdown } from '../security/markdown';
 import { OrgApplicationRecord, WizardDraft, WizardFieldError, WizardStep } from './types';
 import { stepPosition } from './wizard';
-import { composeFullName } from '../platform/types';
+import { composeFullName, needsApplicantAction, toBotStatus } from '../platform/types';
 
 /**
  * Message text for every wizard step and outcome.
@@ -84,15 +84,29 @@ export function fieldErrorText(language: Language, error: WizardFieldError): str
 
 export function statusMessage(language: Language, record: OrgApplicationRecord): string {
   const texts = t(language).orgApp;
-  const label = texts.statusLabels[record.status];
+  const visible = toBotStatus(record.status);
 
-  let message = texts.statusChanged(escapeLegacyMarkdown(record.organizationName), label);
+  let message = texts.statusChanged(
+    escapeLegacyMarkdown(record.organizationName),
+    texts.statusLabels[visible],
+  );
 
   if (record.rejectionReason) {
     message += texts.statusReason(escapeLegacyMarkdown(record.rejectionReason));
   }
-  if (record.status === 'activated') {
+
+  // Three stages carry a consequence the label alone does not convey.
+  if (visible === 'activated') {
     message += texts.activatedExtra;
+  } else if (needsApplicantAction(record.status)) {
+    // The applicant has to do something. Without this line the message reads as
+    // just another status update and they wait for a move that never comes.
+    message += texts.actionNeededExtra;
+  } else if (visible === 'rejected' || visible === 'pa_rejected') {
+    // The platform keeps the rejected application's organization row `pending`
+    // forever, which permanently reserves the STIR — so "apply again" is not
+    // advice the bot can honestly give.
+    message += texts.rejectedExtra;
   }
 
   return message;
@@ -111,7 +125,7 @@ export function applicationsListText(
       organizationName: escapeLegacyMarkdown(record.organizationName),
       organizationType: texts.orgTypeLabels[record.organizationType] ?? record.organizationType,
       stir: record.stir,
-      statusLabel: texts.statusLabels[record.status],
+      statusLabel: texts.statusLabels[toBotStatus(record.status)],
       submittedDate: formatDate(record.submittedAt),
     }),
   );

@@ -7,7 +7,6 @@ import {
   CreateApplicationResult,
   PlatformApplicationStatus,
   PlatformError,
-  isValidStir,
 } from './types';
 
 interface StubRecord {
@@ -24,18 +23,31 @@ interface StubRecord {
 /**
  * In-process stand-in for the platform.
  *
- * It exists because the platform currently runs on the owner's machine at
- * localhost:3000 while the bot runs on a droplet — today they cannot talk. The
- * whole applicant flow is built and tested against this, then the HTTP client is
- * switched on by setting PLATFORM_URL.
+ * It exists because the platform runs on the owner's machine while the bot runs
+ * on a droplet — today they cannot talk. The whole applicant flow is built and
+ * tested against this, then the HTTP client is switched on by setting
+ * PLATFORM_URL.
  *
- * It deliberately reproduces the three platform behaviours that shape the UX:
- *   1. idempotency on the submission key
- *   2. STIR uniqueness -> 409 stir_taken (the platform has no archive route yet)
- *   3. strict STIR format (numeric, 9-14 digits)
+ * It models the CONTRACT the integration route must satisfy, which is not always
+ * the same as what the platform's existing PA route does today. Two places where
+ * that distinction matters, both taken from reading the platform's source:
  *
- * State is per-process and NOT persisted: restarting the bot clears it. That is
- * intentional — it must never be mistaken for a real backing store.
+ *   1. STIR FORMAT is not checked at intake. The platform's store only strips
+ *      whitespace; `STIR_FORMAT_VALID` is a rule of the LATER verification step.
+ *      So a malformed STIR is accepted here too — the bot catches it in the
+ *      wizard, before it ever gets this far.
+ *   2. STIR UNIQUENESS *is* checked at intake, because creating an application
+ *      also creates a `pending` organization row and that bind refuses a
+ *      duplicate. The platform surfaces it as a generic 400; the integration
+ *      route is asked to surface it as 409 `stir_taken` so a client can tell it
+ *      apart from a validation failure.
+ *
+ * Documents are NOT required at intake — the platform's `DOCUMENTS_PRESENT` rule
+ * also belongs to verification. The bot requires one anyway, in the wizard,
+ * because an application that cannot pass verification is not worth submitting.
+ *
+ * State is per-process and NOT persisted, so it can never be mistaken for a real
+ * backing store.
  */
 export class StubPlatformClient implements PlatformClient {
   readonly kind = 'stub' as const;
@@ -47,7 +59,8 @@ export class StubPlatformClient implements PlatformClient {
   async createOrganizationApplication(
     input: CreateApplicationInput,
   ): Promise<CreateApplicationResult> {
-    const stir = input.stir.trim();
+    // The platform's normalizeStir strips whitespace and nothing else.
+    const stir = input.stir.replace(/\s+/g, '');
 
     const existingId = this.byIdempotencyKey.get(input.idempotencyKey);
     if (existingId) {
@@ -62,13 +75,14 @@ export class StubPlatformClient implements PlatformClient {
       }
     }
 
+    // The five fields the platform's validateApplicationInput requires, and it
+    // checks non-emptiness only.
     const fields: Record<string, string> = {};
     if (!input.organizationName.trim()) fields.organizationName = 'required';
-    if (!isValidStir(stir)) fields.stir = 'must be 9-14 digits';
-    if (!input.responsible.lastName.trim()) fields.lastName = 'required';
-    if (!input.responsible.firstName.trim()) fields.firstName = 'required';
-    if (!input.responsible.phone.trim()) fields.phone = 'required';
-    if (input.documents.length === 0) fields.documents = 'at least one document required';
+    if (!input.organizationType.trim()) fields.organizationType = 'required';
+    if (!stir) fields.stir = 'required';
+    if (!input.responsiblePersonName.trim()) fields.responsiblePersonName = 'required';
+    if (!input.phone.trim()) fields.phone = 'required';
 
     if (Object.keys(fields).length > 0) {
       throw new PlatformError('validation_failed', 'Application validation failed', {
@@ -77,8 +91,7 @@ export class StubPlatformClient implements PlatformClient {
       });
     }
 
-    const stirOwner = this.stirIndex.get(stir);
-    if (stirOwner) {
+    if (this.stirIndex.has(stir)) {
       throw new PlatformError('stir_taken', `STIR ${stir} is already registered`, {
         httpStatus: 409,
       });
@@ -134,8 +147,8 @@ export class StubPlatformClient implements PlatformClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Test / manual-QA helpers. Not part of PlatformClient — callers that depend on
-  // these are, by construction, test or dev code only.
+  // Test / manual-QA helpers. Not part of PlatformClient, so anything depending
+  // on them is by construction test or dev code.
   // ---------------------------------------------------------------------------
 
   /** Move an application to a new stage, as the web panel would. */
@@ -152,6 +165,16 @@ export class StubPlatformClient implements PlatformClient {
     record.updatedAt = new Date().toISOString();
     if (extra.rejectionReason !== undefined) record.rejectionReason = extra.rejectionReason;
     if (extra.organizationId !== undefined) record.organizationId = extra.organizationId;
+  }
+
+  /**
+   * Free the STIR, as an archive route would. The platform has no such route
+   * today — a rejected application's organization stays `pending` forever and the
+   * STIR stays reserved — so this exists to test what the bot does once one is
+   * added, not to model current behaviour.
+   */
+  releaseStir(stir: string): void {
+    this.stirIndex.delete(stir.replace(/\s+/g, ''));
   }
 
   reset(): void {

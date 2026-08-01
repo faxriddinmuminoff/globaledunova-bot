@@ -407,20 +407,30 @@ export interface OrgAppTranslations {
   submitFailedValidation: string;
   submitFailedUnavailable: string;
 
+  /**
+   * The ten applicant-visible stages (`BotStatus`), not the platform's fourteen
+   * raw ones — several of those mean the same thing to an applicant.
+   */
   statusLabels: Record<
     | 'submitted'
-    | 'verify_passed'
     | 'verify_failed'
-    | 'pa_approved'
+    | 'in_review'
     | 'pa_rejected'
+    | 'awaiting_owner'
     | 'owner_approved'
-    | 'owner_rejected'
-    | 'activated',
+    | 'rejected'
+    | 'needs_correction'
+    | 'activated'
+    | 'archived',
     string
   >;
   statusChanged: (organizationName: string, statusLabel: string) => string;
   statusReason: (reason: string) => string;
   activatedExtra: string;
+  /** Appended when the applicant must act: verification blocked, or returned. */
+  actionNeededExtra: string;
+  /** Appended on a final rejection, because the STIR stays reserved. */
+  rejectedExtra: string;
 
   myApplicationsTitle: string;
   myApplicationsEmpty: string;

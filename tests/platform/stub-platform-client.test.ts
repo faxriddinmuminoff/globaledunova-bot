@@ -6,6 +6,9 @@ import {
   composeFullName,
   isTerminalStatus,
   isValidStir,
+  needsApplicantAction,
+  toBotStatus,
+  toDocumentPayload,
 } from '../../src/platform/types';
 
 function input(overrides: Partial<CreateApplicationInput> = {}): CreateApplicationInput {
@@ -14,19 +17,14 @@ function input(overrides: Partial<CreateApplicationInput> = {}): CreateApplicati
     organizationName: 'Toshkent xalqaro moliya instituti',
     organizationType: 'institute',
     stir: '305447892',
-    responsible: {
-      lastName: 'Karimov',
-      firstName: 'Jasur',
-      middleName: 'Anvarovich',
-      phone: '+998712001020',
-    },
+    responsiblePersonName: 'Karimov Jasur Anvarovich',
+    phone: '+998712001020',
     contactTelegramId: 555,
     documents: [
       {
-        kind: 'charter',
-        fileName: 'ustav.pdf',
-        storageRef: 'local://org-apps/2026/ab12.pdf',
-        sizeBytes: 184320,
+        documentType: 'charter',
+        storageRef: 'local://org-apps/ab12.pdf',
+        uploadedAt: '2026-07-30T10:00:00.000Z',
         sha256: 'a'.repeat(64),
       },
     ],
@@ -78,20 +76,31 @@ describe('StubPlatformClient', () => {
   });
 
   it.each([
-    ['too short', '12345678'],
-    ['too long', '123456789012345'],
-    ['not numeric', '30544789A'],
-    ['empty', ''],
-  ])('rejects a STIR that is %s', async (_label, stir) => {
+    ['organizationName', { organizationName: '   ' }],
+    ['stir', { stir: '   ' }],
+    ['responsiblePersonName', { responsiblePersonName: '' }],
+    ['phone', { phone: '' }],
+  ])('rejects a missing %s', async (_field, patch) => {
     await expect(
-      client.createOrganizationApplication(input({ stir })),
+      client.createOrganizationApplication(input(patch)),
     ).rejects.toMatchObject({ code: 'validation_failed', httpStatus: 422 });
   });
 
-  it('requires at least one document', async () => {
-    await expect(
-      client.createOrganizationApplication(input({ documents: [] })),
-    ).rejects.toMatchObject({ code: 'validation_failed' });
+  it.each([
+    ['too short', '12345678'],
+    ['too long', '123456789012345'],
+    ['not numeric', '30544789A'],
+  ])('ACCEPTS a STIR that is %s, because the platform checks format at verify', async (_l, stir) => {
+    // The platform's intake only strips whitespace; STIR_FORMAT_VALID is a rule
+    // of the later verification step. The bot rejects these in the wizard, long
+    // before this call — but the contract must not pretend otherwise.
+    const result = await client.createOrganizationApplication(input({ stir }));
+    expect(result.status).toBe('submitted');
+  });
+
+  it('accepts an application with no documents, because DOCUMENTS_PRESENT is a verify rule', async () => {
+    const result = await client.createOrganizationApplication(input({ documents: [] }));
+    expect(result.status).toBe('submitted');
   });
 
   it('reports every failing field at once', async () => {
@@ -99,9 +108,9 @@ describe('StubPlatformClient', () => {
       await client.createOrganizationApplication(
         input({
           organizationName: '   ',
-          stir: 'abc',
-          responsible: { lastName: '', firstName: '', middleName: '', phone: '' },
-          documents: [],
+          stir: '   ',
+          responsiblePersonName: '',
+          phone: '',
         }),
       );
       expect.unreachable('should have thrown');
@@ -109,11 +118,9 @@ describe('StubPlatformClient', () => {
       expect(error).toBeInstanceOf(PlatformError);
       const fields = (error as PlatformError).fields ?? {};
       expect(Object.keys(fields).sort()).toEqual([
-        'documents',
-        'firstName',
-        'lastName',
         'organizationName',
         'phone',
+        'responsiblePersonName',
         'stir',
       ]);
     }
@@ -121,7 +128,7 @@ describe('StubPlatformClient', () => {
 
   it('does not consume the STIR when validation fails', async () => {
     await expect(
-      client.createOrganizationApplication(input({ documents: [] })),
+      client.createOrganizationApplication(input({ phone: '' })),
     ).rejects.toThrow();
 
     // The same STIR must still be usable once the applicant fixes the problem.
@@ -134,9 +141,9 @@ describe('StubPlatformClient', () => {
   it('reads back a status and reflects panel-side stage changes', async () => {
     const created = await client.createOrganizationApplication(input());
 
-    client.setStatus(created.applicationId, 'pa_approved');
+    client.setStatus(created.applicationId, 'platform_admin_review');
     let status = await client.getOrganizationApplicationStatus(created.applicationId);
-    expect(status.status).toBe('pa_approved');
+    expect(status.status).toBe('platform_admin_review');
 
     client.setStatus(created.applicationId, 'activated', { organizationId: 'org-1' });
     status = await client.getOrganizationApplicationStatus(created.applicationId);
@@ -179,17 +186,85 @@ describe('contract helpers', () => {
     expect(isValidStir('12345678901234')).toBe(true);
     expect(isValidStir('12345678')).toBe(false);
     expect(isValidStir('123456789012345')).toBe(false);
-    expect(isValidStir(' 305447892 ')).toBe(true);
+    expect(isValidStir(' 305 447 892 ')).toBe(true);
   });
 
-  it('marks only end-of-pipeline stages as terminal', () => {
-    expect(isTerminalStatus('activated')).toBe(true);
+  it('sends only the four document keys the platform keeps', () => {
+    const payload = toDocumentPayload({
+      documentType: 'charter',
+      storageRef: 'local://org-apps/x.pdf',
+      uploadedAt: '2026-07-30T10:00:00.000Z',
+      sha256: 'b'.repeat(64),
+      fileName: 'ustav.pdf',
+      sizeBytes: 1024,
+    });
+
+    // fileName and sizeBytes are the bot's own; the platform's normalizer would
+    // drop them silently, which reads as "sent" but is not.
+    expect(Object.keys(payload).sort()).toEqual([
+      'documentType',
+      'sha256',
+      'storageRef',
+      'uploadedAt',
+    ]);
+  });
+});
+
+describe('status mapping', () => {
+  it('collapses the three pre-verification stages into one visible stage', () => {
+    expect(toBotStatus('draft')).toBe('submitted');
+    expect(toBotStatus('submitted')).toBe('submitted');
+    expect(toBotStatus('system_verify_running')).toBe('submitted');
+  });
+
+  it('collapses passed-verification and PA review into "in review"', () => {
+    expect(toBotStatus('system_verify_passed')).toBe('in_review');
+    expect(toBotStatus('platform_admin_review')).toBe('in_review');
+  });
+
+  it('collapses both pre-owner stages into "awaiting owner"', () => {
+    expect(toBotStatus('ready_for_owner')).toBe('awaiting_owner');
+    expect(toBotStatus('owner_pending')).toBe('awaiting_owner');
+  });
+
+  it.each([
+    ['system_verify_blocked', 'verify_failed'],
+    ['platform_admin_rejected', 'pa_rejected'],
+    ['owner_approved', 'owner_approved'],
+    ['owner_rejected', 'rejected'],
+    ['return_for_correction', 'needs_correction'],
+    ['activated', 'activated'],
+    ['archived', 'archived'],
+  ] as const)('maps %s to %s', (raw, visible) => {
+    expect(toBotStatus(raw)).toBe(visible);
+  });
+
+  it('marks exactly the two stages the applicant must act on', () => {
+    // These are the two the platform's own validateSubmitCorrection accepts.
+    expect(needsApplicantAction('system_verify_blocked')).toBe(true);
+    expect(needsApplicantAction('return_for_correction')).toBe(true);
+
+    expect(needsApplicantAction('submitted')).toBe(false);
+    expect(needsApplicantAction('platform_admin_review')).toBe(false);
+    expect(needsApplicantAction('owner_rejected')).toBe(false);
+    expect(needsApplicantAction('activated')).toBe(false);
+  });
+
+  it('marks as terminal only the stages with no way forward', () => {
+    // Both rejections are terminal: the platform has no resume path out of
+    // either, only out of return_for_correction and system_verify_blocked.
+    expect(isTerminalStatus('platform_admin_rejected')).toBe(true);
     expect(isTerminalStatus('owner_rejected')).toBe(true);
-    expect(isTerminalStatus('verify_failed')).toBe(true);
-    expect(isTerminalStatus('pa_rejected')).toBe(true);
-    // Owner approval is followed by activation, so it is NOT terminal.
-    expect(isTerminalStatus('owner_approved')).toBe(false);
+    expect(isTerminalStatus('activated')).toBe(true);
+    expect(isTerminalStatus('archived')).toBe(true);
+
+    // Correctable — keep polling, the applicant may fix it.
+    expect(isTerminalStatus('system_verify_blocked')).toBe(false);
+    expect(isTerminalStatus('return_for_correction')).toBe(false);
+
+    // In motion.
     expect(isTerminalStatus('submitted')).toBe(false);
-    expect(isTerminalStatus('pa_approved')).toBe(false);
+    expect(isTerminalStatus('platform_admin_review')).toBe(false);
+    expect(isTerminalStatus('owner_approved')).toBe(false);
   });
 });

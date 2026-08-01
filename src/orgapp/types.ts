@@ -1,5 +1,6 @@
 import {
-  ApplicationDocumentRef,
+  BotStatus,
+  StoredDocument,
   OrganizationType,
   PlatformApplicationStatus,
 } from '../platform/types';
@@ -44,7 +45,7 @@ export interface WizardDraft {
   /** Empty string is a legitimate value here — not every person has a sharif. */
   middleName?: string;
   phone?: string;
-  charter?: ApplicationDocumentRef;
+  charter?: StoredDocument;
 }
 
 export interface WizardState {
@@ -90,8 +91,14 @@ export interface OrgApplicationRecord {
   submittedAt: string;
   /** When the bot last successfully read the status from the platform. */
   lastCheckedAt: string;
-  /** Statuses already announced to the applicant, so nothing is sent twice. */
-  notifiedStatuses: PlatformApplicationStatus[];
+  /**
+   * Which APPLICANT-VISIBLE stages have already been announced.
+   *
+   * Deliberately the reduced BotStatus, not the raw platform status: three raw
+   * stages collapse to "submitted" and two to "in_review", so deduping on the raw
+   * value would message the applicant twice for one visible change.
+   */
+  notifiedStatuses: BotStatus[];
 }
 
 export const MAX_ORGANIZATION_NAME_LENGTH = 200;
